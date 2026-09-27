@@ -2,6 +2,7 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$AidRoot,
+    [string]$OutputRoot = "outputs",
     [ValidateSet("auto", "cuda", "cpu", "mps")]
     [string]$Device = "auto",
     [int]$BatchSize = 32,
@@ -10,6 +11,8 @@ param(
     [switch]$Amp,
     [switch]$SmokeOnly,
     [switch]$SkipExisting,
+    [ValidateSet("baseline", "weather_robust")]
+    [string]$Augmentation = "baseline",
     [int]$ExpectedTargetPerClass = 0
 )
 
@@ -17,7 +20,9 @@ $ErrorActionPreference = "Stop"
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $PythonExe = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
 $ManifestRoot = Join-Path $ProjectRoot "data\manifests"
-$OutputRoot = Join-Path $ProjectRoot "outputs"
+if (-not [System.IO.Path]::IsPathRooted($OutputRoot)) {
+    $OutputRoot = Join-Path $ProjectRoot $OutputRoot
+}
 
 function Invoke-Checked {
     param(
@@ -78,6 +83,7 @@ try {
             "--batch-size", ([Math]::Min($BatchSize, 16)).ToString(),
             "--workers", $Workers.ToString(),
             "--device", $Device,
+            "--augmentation", $Augmentation,
             "--output-dir", $SmokeRoot
         )
         if ($Amp) {
@@ -99,7 +105,8 @@ try {
         "--output-root", $OutputRoot,
         "--batch-size", $BatchSize.ToString(),
         "--workers", $Workers.ToString(),
-        "--device", $Device
+        "--device", $Device,
+        "--augmentation", $Augmentation
     )
     if ($Amp) {
         $StudyArguments += "--amp"
@@ -131,4 +138,3 @@ finally {
 Write-Host "`nCross-domain study completed successfully." -ForegroundColor Green
 Write-Host "Per-run results: $OutputRoot\cross_domain_runs.csv"
 Write-Host "Model comparison: $OutputRoot\cross_domain_models.csv"
-

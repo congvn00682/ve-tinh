@@ -4,13 +4,25 @@ Project nghiên cứu khả năng tổng quát hóa của các model scene-class
 train trên source domain hiện có và test trên AID. Code được chuẩn bị trên máy
 phát triển nhưng việc cài PyTorch và train được thực hiện ở máy khác.
 
+Để tự học, đọc [phân tích toàn bộ dự án](PROJECT_ANALYSIS_VI.md): cấu trúc,
+models, training/evaluation, giới hạn và thứ tự ưu tiên đọc code.
+[Prompt bàn giao dùng lại](REUSABLE_PROJECT_PROMPT.md) lưu bối cảnh để tiếp tục
+ở thread mới; điền nhiệm vụ cụ thể trước khi sử dụng.
+
 Hướng dẫn chi tiết để chuyển và chạy trên máy khác nằm tại
 [RUN_ON_ANOTHER_MACHINE_GUIDELINE.md](RUN_ON_ANOTHER_MACHINE_GUIDELINE.md).
 
 Riêng Windows có bộ cài PowerShell và hướng dẫn tại
 [WINDOWS_GUIDELINE.md](WINDOWS_GUIDELINE.md).
 
+Lưu manifest/seed/checkpoint, xuất confusion matrix, F1 từng lớp và training
+curves (kể cả kết quả đã chạy): [RESEARCH_ARTIFACTS_GUIDELINE.md](RESEARCH_ARTIFACTS_GUIDELINE.md).
+
 Methodology đã khóa nằm tại [research/methodology.md](research/methodology.md).
+
+Chế độ cải tiến để thử nghiệm với mây/sương, ánh sáng, độ phân giải và nhiễu ảnh:
+[ROBUSTNESS_GUIDELINE.md](ROBUSTNESS_GUIDELINE.md). Dùng `-Augmentation weather_robust`
+trên Windows; mặc định vẫn là baseline. Cần train và đánh giá để xác nhận hiệu quả.
 
 ## Thiết kế dữ liệu
 
@@ -128,8 +140,8 @@ resnet18_pretrained
 deit_tiny_pretrained
 ```
 
-`--skip-existing` cho phép tiếp tục một study bị ngắt mà không train lại các run
-đã có kết quả.
+`--skip-existing` chỉ bỏ qua run đã hoàn tất và khớp hash. Run dở dang cần được
+chuyển ra thư mục backup trước khi chạy lại từ đầu; không resume optimizer.
 
 ## 6. Tổng hợp kết quả
 

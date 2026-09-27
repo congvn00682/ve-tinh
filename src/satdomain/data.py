@@ -14,6 +14,7 @@ from torchvision import transforms
 from torchvision.transforms import functional as TF
 
 from .constants import IMAGENET_MEAN, IMAGENET_STD
+from .robustness import EvaluationDegradation, RandomDegradation, profile_metadata
 
 
 class RandomRotate90:
@@ -31,10 +32,12 @@ class ManifestDataset(Dataset):
         frame: pd.DataFrame,
         root: str | Path,
         transform: Callable | None = None,
+        degradation: EvaluationDegradation | None = None,
     ) -> None:
         self.frame = frame.reset_index(drop=True).copy()
         self.root = Path(root)
         self.transform = transform
+        self.degradation = degradation
 
         required = {"path", "class_index", "label"}
         missing = required.difference(self.frame.columns)
@@ -49,14 +52,17 @@ class ManifestDataset(Dataset):
         image_path = self.root / str(row["path"])
         with Image.open(image_path) as image:
             image = image.convert("RGB")
+            if self.degradation is not None:
+                image = self.degradation(image, str(row.get("sha256", row["path"])))
             if self.transform is not None:
                 image = self.transform(image)
         return image, int(row["class_index"]), str(row["path"])
 
 
-def build_transforms(image_size: int = 224) -> tuple[Callable, Callable]:
+def build_transforms(image_size: int = 224, augmentation: str = "baseline") -> tuple[Callable, Callable]:
     """Return train and deterministic evaluation transforms."""
 
+    profile_metadata(augmentation)
     train_transform = transforms.Compose(
         [
             transforms.Resize(256),
@@ -64,6 +70,7 @@ def build_transforms(image_size: int = 224) -> tuple[Callable, Callable]:
             transforms.RandomHorizontalFlip(),
             transforms.RandomVerticalFlip(),
             RandomRotate90(),
+            *([RandomDegradation()] if augmentation == "weather_robust" else []),
             transforms.ToTensor(),
             transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
         ]

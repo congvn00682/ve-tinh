@@ -164,7 +164,13 @@ def main() -> None:
         seed=args.seed,
     )
     write_csv(output_dir / "source.csv", source_rows)
-    summary = {"source": summarize(source_rows, source_root)}
+    summary = {
+        "split_seed": args.seed,
+        "num_folds": args.folds,
+        "arguments": vars(args),
+        "source": summarize(source_rows, source_root),
+        "source_manifest_sha256": file_hash(output_dir / "source.csv"),
+    }
 
     if args.aid_root:
         aid_root = Path(args.aid_root)
@@ -186,6 +192,7 @@ def main() -> None:
             raise ValueError(f"Source/target duplicate content detected: {overlap[:5]}")
         write_csv(output_dir / "aid_test.csv", target_rows)
         summary["target"] = summarize(target_rows, aid_root)
+        summary["target_manifest_sha256"] = file_hash(output_dir / "aid_test.csv")
 
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "summary.json").write_text(

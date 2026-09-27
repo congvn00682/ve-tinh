@@ -78,3 +78,20 @@ Manifests store relative path, canonical class, class index, validation fold,
 domain, and SHA-256 digest. Checkpoints store weights, class order,
 preprocessing metadata, seed, and training arguments. Generated manifests,
 checkpoints, plots, and predictions are not committed to Git by default.
+
+## Optional robustness experiment
+
+The `weather_robust` profile uses synthetic cloud/haze, illumination, resolution
+loss and RGB noise on source training data. It selects epochs by mean macro-F1
+across clean and four deterministically degraded source-validation views, then
+refits on all source data. Baseline selection remains clean validation macro-F1.
+Compare these as two pipelines; isolating augmentation requires an additional
+ablation with the same selection criterion. AID remains excluded from selection.
+
+Evaluate fixed checkpoints on clean AID and each degradation at three severity
+levels. Report paired clean-to-degraded drops, not a same-domain/cross-domain
+gap. Transformed views are not additional independent test samples. This protocol
+does not establish real cyclone detection, damage assessment, geographic or
+seasonal generalization. See [ROBUSTNESS_GUIDELINE.md](../ROBUSTNESS_GUIDELINE.md)
+for commands, limitations and the need for unseen target data after exploratory
+experiments on the previously inspected AID subset.

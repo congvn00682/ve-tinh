@@ -1,5 +1,11 @@
 # Guideline chạy project trên máy khác
 
+Hướng dẫn lưu và xuất artifacts nghiên cứu mới:
+[RESEARCH_ARTIFACTS_GUIDELINE.md](RESEARCH_ARTIFACTS_GUIDELINE.md).
+Train/evaluate hiện yêu cầu output directory mới; không ghi đè kết quả cũ.
+`--skip-existing` chỉ bỏ qua run hoàn tất có hash hợp lệ. Với run dở dang,
+chuyển folder đó sang backup rồi chạy lại từ đầu; chưa hỗ trợ resume optimizer.
+
 Tài liệu này hướng dẫn chuyển source code, chuẩn bị môi trường, train các model,
 thực hiện cross-domain test trên AID, tổng hợp kết quả và inference ảnh mới.
 

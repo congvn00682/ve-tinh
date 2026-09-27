@@ -9,6 +9,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from satdomain.artifacts import environment_info, file_hash, is_complete, snapshot_file, write_json
+from satdomain.robustness import PROFILES
 
 DEFAULT_MODELS = [
     "small_cnn",
@@ -36,6 +38,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--device", default="auto")
     parser.add_argument("--amp", action="store_true")
+    parser.add_argument("--augmentation", choices=PROFILES, default="baseline")
     parser.add_argument("--skip-existing", action="store_true")
     return parser.parse_args()
 
@@ -68,6 +71,8 @@ def training_base(args: argparse.Namespace, architecture: str, seed: int) -> lis
         str(args.weight_decay),
         "--device",
         args.device,
+        "--augmentation",
+        args.augmentation,
     ]
     if args.amp:
         command.append("--amp")
@@ -77,14 +82,33 @@ def training_base(args: argparse.Namespace, architecture: str, seed: int) -> lis
 def main() -> None:
     args = parse_args()
     output_root = Path(args.output_root)
+    # Freeze configuration and manifests before training or --skip-existing.
+    lock_path = output_root / "study.json"
+    signature = {k: v for k, v in vars(args).items() if k not in {"skip_existing", "output_root"}}
+    signature["source_manifest_sha256"] = file_hash(args.source_manifest)
+    signature["target_manifest_sha256"] = file_hash(args.target_manifest)
+    signature["code_sha256"] = environment_info()["code_sha256"]
+    if lock_path.exists():
+        previous = json.loads(lock_path.read_text(encoding="utf-8"))
+        if previous != signature:
+            raise ValueError("Study configuration/manifests changed. Use a new --output-root.")
+    else:
+        if (output_root / "development").exists() or (output_root / "final").exists():
+            raise ValueError("Existing study has no provenance lock. Use a new --output-root; keep old results.")
+        output_root.mkdir(parents=True, exist_ok=True)
+        snapshot_file(args.source_manifest, output_root / "manifests" / "source.csv")
+        snapshot_file(args.target_manifest, output_root / "manifests" / "aid_test.csv")
+        generation = Path(args.source_manifest).parent / "summary.json"
+        if generation.exists():
+            snapshot_file(generation, output_root / "manifests" / "generation_summary.json")
+        write_json(lock_path, signature)
 
     # Phase 1: source-only development. Target images are not opened.
     for architecture in args.models:
         for seed_index, seed in enumerate(args.seeds):
             validation_fold = seed_index % args.folds
             destination = output_root / "development" / architecture / f"seed_{seed}"
-            summary_path = destination / "summary.json"
-            if args.skip_existing and summary_path.exists():
+            if args.skip_existing and is_complete(destination):
                 continue
             command = training_base(args, architecture, seed)
             command.extend(
@@ -114,8 +138,7 @@ def main() -> None:
             )
             final_epochs = max(1, int(summary["best_epoch"]))
             destination = output_root / "final" / architecture / f"seed_{seed}"
-            checkpoint = destination / "best.pt"
-            if args.skip_existing and checkpoint.exists():
+            if args.skip_existing and is_complete(destination):
                 continue
             command = training_base(args, architecture, seed)
             command.extend(
@@ -124,6 +147,8 @@ def main() -> None:
                     "final",
                     "--epochs",
                     str(final_epochs),
+                    "--development-summary",
+                    str(development_dir / "summary.json"),
                     "--output-dir",
                     str(destination),
                 ]
@@ -135,8 +160,7 @@ def main() -> None:
         for seed in args.seeds:
             final_dir = output_root / "final" / architecture / f"seed_{seed}"
             evaluation_dir = final_dir / "aid_evaluation"
-            metrics_path = evaluation_dir / "metrics.json"
-            if args.skip_existing and metrics_path.exists():
+            if args.skip_existing and is_complete(evaluation_dir):
                 continue
             run(
                 [
@@ -165,4 +189,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -1,5 +1,9 @@
 # Hướng dẫn cài và chạy trên Windows
 
+Lưu bằng chứng thực nghiệm và xuất báo cáo từ kết quả cũ:
+[RESEARCH_ARTIFACTS_GUIDELINE.md](RESEARCH_ARTIFACTS_GUIDELINE.md).
+Thêm `-OutputRoot "D:\experiments\study_v2"` để tạo study riêng, tránh ghi đè.
+
 Đây là quy trình ngắn dành riêng cho Windows 10/11. Hai PowerShell scripts đi
 kèm tự tạo virtual environment và gọi đúng Python bên trong `.venv`; người dùng
 không cần activate environment thủ công.
@@ -152,6 +156,9 @@ Nếu hết GPU memory, giảm `-BatchSize` xuống 16 hoặc 8.
 
 Để tiếp tục một study bị ngắt:
 
+Chỉ các run có `complete.json` hợp lệ được bỏ qua. Chuyển run dở dang sang
+thư mục backup trước khi chạy lại; run đó sẽ train lại từ đầu, không resume epoch.
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\run_windows.ps1 `
   -AidRoot "D:\satellite-data\aid_target" `
@@ -208,4 +215,3 @@ nvidia-smi
 
 Nếu `nvidia-smi` hoạt động nhưng PyTorch trả `False`, cài lại PyTorch bằng index
 URL lấy từ bộ chọn chính thức.
-

@@ -1,11 +1,11 @@
-"""Train one source-CV fold or one final source-domain model."""
+"""Train source development/final models and preserve their research artifacts."""
 
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import torch
 from torch import nn
 from torch.optim import AdamW
@@ -13,6 +13,8 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
 
 from .constants import CLASS_NAMES, CLASS_TO_INDEX, IMAGENET_MEAN, IMAGENET_STD
+from .artifacts import complete_run, file_hash, snapshot_file, start_run, verify_manifest
+from .reports import export_history
 from .data import (
     ManifestDataset,
     build_transforms,
@@ -22,6 +24,7 @@ from .data import (
 from .metrics import classification_metrics
 from .models import create_model
 from .runtime import choose_device, seed_everything, write_json
+from .robustness import CONDITIONS, PROFILES, EvaluationDegradation, profile_metadata
 
 
 def parse_args() -> argparse.Namespace:
@@ -55,6 +58,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--image-size", type=int, default=224)
     parser.add_argument("--device", default="auto")
     parser.add_argument("--amp", action="store_true")
+    parser.add_argument("--augmentation", choices=PROFILES, default="baseline")
+    parser.add_argument("--development-summary", help="Source-only summary that selected final epochs")
     return parser.parse_args()
 
 
@@ -65,8 +70,9 @@ def make_loader(
     batch_size: int,
     workers: int,
     shuffle: bool,
+    degradation: EvaluationDegradation | None = None,
 ) -> DataLoader:
-    dataset = ManifestDataset(frame, root=root, transform=transform)
+    dataset = ManifestDataset(frame, root=root, transform=transform, degradation=degradation)
     return DataLoader(
         dataset,
         batch_size=batch_size,
@@ -151,36 +157,7 @@ def run_epoch(
     return total_loss / len(loader.dataset), metrics, rows
 
 
-def plot_history(path: Path, history: list[dict]) -> None:
-    epochs = [row["epoch"] for row in history]
-    figure, axes = plt.subplots(1, 2, figsize=(11, 4))
-    axes[0].plot(epochs, [row["train_loss"] for row in history], label="train")
-    if "validation_loss" in history[0]:
-        axes[0].plot(
-            epochs,
-            [row["validation_loss"] for row in history],
-            label="validation",
-        )
-    axes[0].set_title("Loss")
-    axes[0].set_xlabel("Epoch")
-    axes[0].legend()
-
-    axes[1].plot(epochs, [row["train_macro_f1"] for row in history], label="train")
-    if "validation_macro_f1" in history[0]:
-        axes[1].plot(
-            epochs,
-            [row["validation_macro_f1"] for row in history],
-            label="validation",
-        )
-    axes[1].set_title("Macro F1")
-    axes[1].set_xlabel("Epoch")
-    axes[1].legend()
-    figure.tight_layout()
-    figure.savefig(path, dpi=180)
-    plt.close(figure)
-
-
-def checkpoint_payload(model: nn.Module, args: argparse.Namespace, epoch: int) -> dict:
+def checkpoint_payload(model: nn.Module, args: argparse.Namespace, epoch: int, provenance: dict) -> dict:
     return {
         "state_dict": model.state_dict(),
         "architecture": args.arch,
@@ -192,18 +169,21 @@ def checkpoint_payload(model: nn.Module, args: argparse.Namespace, epoch: int) -
         "epoch": epoch,
         "temperature": 1.0,
         "training_args": vars(args),
+        "provenance": provenance,
     }
 
 
 def main() -> None:
     args = parse_args()
+    if args.epochs < 1:
+        raise ValueError("epochs must be positive")
     seed_everything(args.seed)
     device = choose_device(args.device)
     output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    verify_manifest(args.manifest, args.data_root, CLASS_NAMES, "source")
 
     frame = read_manifest(args.manifest, domain="source")
-    train_transform, eval_transform = build_transforms(args.image_size)
+    train_transform, eval_transform = build_transforms(args.image_size, args.augmentation)
 
     if args.mode == "development":
         train_frame, validation_frame = source_train_validation_split(
@@ -213,6 +193,40 @@ def main() -> None:
     else:
         train_frame = frame
         validation_frame = None
+
+    metadata = start_run(output_dir, vars(args), str(device), "training")
+    metadata["amp_enabled"] = args.amp and device.type == "cuda"
+    metadata["cuda_version"] = torch.version.cuda
+    metadata["device_name"] = torch.cuda.get_device_name(device) if device.type == "cuda" else str(device)
+    metadata["source_manifest"] = snapshot_file(args.manifest, output_dir / "source_manifest.csv")
+    train_frame.to_csv(output_dir / "train_manifest.csv", index=False)
+    splits = {"train_manifest.csv": file_hash(output_dir / "train_manifest.csv")}
+    if validation_frame is not None:
+        validation_frame.to_csv(output_dir / "validation_manifest.csv", index=False)
+        splits["validation_manifest.csv"] = file_hash(output_dir / "validation_manifest.csv")
+    metadata["split_sha256"] = splits
+    if args.development_summary:
+        selected = json.loads(Path(args.development_summary).read_text(encoding="utf-8"))
+        if (args.mode != "final" or selected["architecture"] != args.arch
+                or selected["seed"] != args.seed or selected["best_epoch"] != args.epochs
+                or selected.get("augmentation", "baseline") != args.augmentation
+                or selected["source_manifest_sha256"] != metadata["source_manifest"]["sha256"]):
+            raise ValueError("Development summary does not match this final run")
+        metadata["development_summary"] = snapshot_file(
+            args.development_summary, output_dir / "development_summary.json")
+    metadata["preprocessing"] = {
+        "resize_short_side": 256, "image_size": args.image_size,
+        "evaluation_crop": "center", "mean": IMAGENET_MEAN, "std": IMAGENET_STD,
+        "train_crop_scale": [0.8, 1.0], "horizontal_vertical_flip": True,
+        "rotation_degrees": [0, 90, 180, 270],
+        "augmentation": profile_metadata(args.augmentation),
+    }
+    metadata["selection_metric"] = (
+        "mean_clean_and_four_degraded_source_macro_f1"
+        if args.augmentation == "weather_robust" else "clean_source_macro_f1")
+    if args.augmentation == "weather_robust":
+        metadata["robust_validation"] = {"severity": 2, "seed": 7919, "conditions": list(CONDITIONS)}
+    write_json(output_dir / "run.json", metadata)
 
     train_loader = make_loader(
         train_frame,
@@ -243,6 +257,7 @@ def main() -> None:
 
     best_score = float("-inf")
     best_epoch = 0
+    best_clean_validation_score = None
     epochs_without_improvement = 0
     history: list[dict] = []
     checkpoint_path = output_dir / "best.pt"
@@ -281,19 +296,38 @@ def main() -> None:
                     "validation_macro_f1": score,
                 }
             )
+            if args.augmentation == "weather_robust":
+                condition_scores = []
+                # Sequential loaders avoid multiplying persistent worker pools.
+                # The same held-out source images and corruptions are used each epoch.
+                for condition in CONDITIONS:
+                    robust_loader = make_loader(
+                        validation_frame, args.data_root, eval_transform,
+                        args.batch_size, 0, shuffle=False,
+                        degradation=EvaluationDegradation(condition, 2, seed=7919))
+                    _, robust_metrics, _ = run_epoch(
+                        model, robust_loader, criterion, device, use_amp=use_amp)
+                    condition_scores.append(robust_metrics["macro_f1"])
+                    row[f"validation_{condition}_macro_f1"] = robust_metrics["macro_f1"]
+                row["validation_robust_macro_f1"] = sum(condition_scores) / len(condition_scores)
+                score = (score + sum(condition_scores)) / (1 + len(condition_scores))
+            row["validation_selection_score"] = score
         else:
             score = train_metrics["macro_f1"]
 
         history.append(row)
+        # Preserve curves even if a later epoch fails or the process is stopped.
+        write_json(output_dir / "history.json", history)
         if args.mode == "final":
             best_score = score
             best_epoch = epoch
-            torch.save(checkpoint_payload(model, args, epoch), checkpoint_path)
+            torch.save(checkpoint_payload(model, args, epoch, metadata), checkpoint_path)
         elif score > best_score:
             best_score = score
+            best_clean_validation_score = row["validation_macro_f1"]
             best_epoch = epoch
             epochs_without_improvement = 0
-            torch.save(checkpoint_payload(model, args, epoch), checkpoint_path)
+            torch.save(checkpoint_payload(model, args, epoch, metadata), checkpoint_path)
         elif args.mode == "development":
             epochs_without_improvement += 1
 
@@ -307,9 +341,13 @@ def main() -> None:
             break
 
     write_json(output_dir / "history.json", history)
-    plot_history(output_dir / "training_curves.png", history)
+    export_history(output_dir, history)
     summary = {
         "architecture": args.arch,
+        "run_id": metadata["run_id"],
+        "checkpoint": "best.pt",
+        "checkpoint_sha256": file_hash(checkpoint_path),
+        "source_manifest_sha256": metadata["source_manifest"]["sha256"],
         "mode": args.mode,
         "seed": args.seed,
         "validation_fold": (
@@ -318,13 +356,20 @@ def main() -> None:
         "device": str(device),
         "best_epoch": best_epoch,
         "best_validation_macro_f1": (
-            best_score if args.mode == "development" else None
+            best_clean_validation_score if args.mode == "development" else None
         ),
+        "augmentation": args.augmentation,
+        "selection_metric": metadata["selection_metric"],
+        "best_selection_score": best_score if args.mode == "development" else None,
         "train_samples": len(train_frame),
         "validation_samples": len(validation_frame) if validation_frame is not None else 0,
     }
 
     write_json(output_dir / "summary.json", summary)
+    completed_files = ["best.pt", "summary.json", "run.json", "history.json", "source_manifest.csv", *splits]
+    if args.development_summary:
+        completed_files.append("development_summary.json")
+    complete_run(output_dir, completed_files)
     print(f"checkpoint={checkpoint_path}", flush=True)
 
 

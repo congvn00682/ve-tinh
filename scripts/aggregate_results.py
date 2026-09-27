@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -24,6 +25,7 @@ def main() -> None:
     args = parse_args()
     output_root = Path(args.output_root)
     rows = []
+    class_rows = []
 
     for architecture in args.models:
         for seed in args.seeds:
@@ -42,10 +44,22 @@ def main() -> None:
                 len(CLASS_NAMES),
                 confidences=predictions["confidence"],
             )
+            result_path = prediction_path.parent / "metrics.json"
+            result = json.loads(result_path.read_text(encoding="utf-8")) if result_path.exists() else {}
+            for index, label in enumerate(CLASS_NAMES):
+                class_rows.append({
+                    "architecture": architecture, "seed": seed, "class_name": label,
+                    "precision": metrics["per_class_precision"][index],
+                    "recall": metrics["per_class_recall"][index],
+                    "f1": metrics["per_class_f1"][index],
+                    "support": metrics["support"][index],
+                })
             rows.append(
                 {
                     "architecture": architecture,
                     "seed": seed,
+                    "checkpoint_sha256": result.get("checkpoint_sha256"),
+                    "target_manifest_sha256": result.get("target_manifest_sha256"),
                     "cross_domain_accuracy": metrics["accuracy"],
                     "cross_domain_balanced_accuracy": metrics[
                         "balanced_accuracy"
@@ -62,11 +76,18 @@ def main() -> None:
     runs = pd.DataFrame(rows)
     runs.to_csv(output_root / "cross_domain_runs.csv", index=False)
     metric_columns = [
-        column for column in runs if column not in {"architecture", "seed"}
+        column for column in runs if column.startswith("cross_domain_")
     ]
     models = runs.groupby("architecture")[metric_columns].agg(["mean", "std"])
     models.columns = ["_".join(column) for column in models.columns]
     models.to_csv(output_root / "cross_domain_models.csv")
+    per_class = pd.DataFrame(class_rows)
+    per_class.to_csv(output_root / "per_class_runs.csv", index=False)
+    class_summary = per_class.groupby(["architecture", "class_name"])[
+        ["precision", "recall", "f1"]
+    ].agg(["mean", "std"])
+    class_summary.columns = ["_".join(column) for column in class_summary.columns]
+    class_summary.to_csv(output_root / "per_class_models.csv")
     print(models.to_string())
 
 
