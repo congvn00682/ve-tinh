@@ -1,0 +1,30 @@
+{
+  "experiment_name": "source_to_aid_9class",
+  "task": "remote_sensing_scene_classification",
+  "source_domain": "source_subset",
+  "target_domain": "aid_subset",
+  "target_images_per_class": "variable",
+  "classes": [
+    "airport",
+    "baseball_diamond",
+    "beach",
+    "bridge",
+    "church",
+    "commercial_area",
+    "dense_residential",
+    "desert",
+    "forest"
+  ],
+  "models": [
+    "small_cnn",
+    "resnet18_scratch",
+    "resnet18_pretrained",
+    "deit_tiny_pretrained"
+  ],
+  "num_folds": 5,
+  "seeds": [13, 37, 73],
+  "image_size": 224,
+  "selection_metric": "macro_f1",
+  "reported_evaluation": "cross_domain_aid_only",
+  "target_used_for_model_selection": false
+}
