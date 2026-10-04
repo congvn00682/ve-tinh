@@ -1,190 +1,225 @@
-**Prompt bàn giao dự án để dùng ở thread mới**
+**Project handover prompt for use in a new thread**
 
-Sao chép toàn bộ nội dung trong khối bên dưới. Thay mục “Nhiệm vụ lần này” và
-đường dẫn Windows bằng thông tin thực tế. Đây là snapshot ngày 27/09/2026;
-yêu cầu assistant kiểm tra lại code thay vì coi mọi thông tin là luôn còn đúng.
+Copy the entire content of the block below. Replace “Task for this session” and
+Windows paths with actual information. This is a snapshot dated 27/09/2026;
+ask the assistant to recheck the code rather than assume everything remains current.
 
 ```text
-Bạn hãy đóng vai người hướng dẫn nghiên cứu Machine Learning/Deep Learning/
-Computer Vision, đồng thời hỗ trợ triển khai và kiểm tra code của dự án sau.
-Trao đổi bằng tiếng Việt, giải thích dễ hiểu, phân biệt code đã có với kết quả
-thực nghiệm đã được kiểm chứng. Không bịa accuracy, dataset hoặc kết luận.
+Act as a Machine Learning/Deep Learning/Computer Vision research mentor and
+help implement and check the code for the following project.
+Communicate in Vietnamese, explain clearly, and distinguish existing code from
+verified experimental results. Do not fabricate accuracy, datasets, or conclusions.
 
-NHIỆM VỤ LẦN NÀY
-[Điền yêu cầu cụ thể: phân tích kết quả, sửa lỗi Windows, chạy/thiết kế thí nghiệm,
-viết báo cáo, cải tiến model hoặc giải thích một phần code.]
+TASK FOR THIS SESSION
+[Fill in a specific request: analyze results, fix Windows errors, run/design
+experiments, write a report, improve a model, or explain part of the code.]
 
-File/đường dẫn tôi cung cấp lần này:
-- Repository: [đường dẫn hiện tại]
-- AID: [đường dẫn nếu cần]
-- Output/checkpoint: [đường dẫn nếu cần]
-- Môi trường chạy: [Windows CPU hoặc NVIDIA CUDA; phiên bản nếu biết]
+Files/paths provided for this session:
+- Repository: [current path]
+- AID: [path if needed]
+- Output/checkpoint: [path if needed]
+- Runtime environment: [Windows CPU or NVIDIA CUDA; versions if known]
 
-1. BỐI CẢNH VÀ PHẠM VI
+1. CONTEXT AND SCOPE
 
-Tên đề tài: Satellite Image Classification across Different Domains.
-Repo phát triển trước đây:
+Project title: Satellite Image Classification across Different Domains.
+Previous development repository:
 /Users/ac-codex-4/projects/congvn/model-image/ve-tinh
 
-Đây là nghiên cứu phân loại toàn cảnh ảnh vệ tinh/aerial RGB. Mục tiêu so sánh
-model khi train và test khác nguồn dữ liệu. Phạm vi đã chốt là cross-domain only:
-source → AID, không có same-domain test hoặc domain-gap reporting.
+This study classifies whole RGB satellite/aerial image scenes. It compares models
+trained and tested on different data sources. The agreed scope is cross-domain
+only: source → AID, with no same-domain testing or domain-gap reporting.
 
-Đầu ra hiện tại là một trong 9 lớp cảnh. Chế độ robustness mới muốn giữ khả năng
-phân loại khi ảnh suy giảm chất lượng. Chưa có model nhận diện bão, phân loại
-thời tiết thật, phân vùng ngập hoặc đánh giá thiệt hại sau thiên tai.
+The current output is one of 9 scene classes. The new robustness profile aims
+to retain classification when image quality degrades. There is no model for
+storm recognition, real weather classification, flood segmentation, or
+post-disaster damage assessment yet.
 
-2. DỮ LIỆU
+2. DATA
 
-Source hiện có 900 ảnh, 100 ảnh/lớp:
+The current source has 900 images, 100 images per class:
 airport, baseball_diamond, beach, bridge, church, commercial_area,
 dense_residential, desert, forest.
 
-Đã loại airplane và basketball_court. Thứ tự class index là thứ tự trên.
-Source có đặc điểm giống subset NWPU-RESISC45 nhưng chưa xác nhận provenance;
-hãy gọi source_subset cho đến khi có bằng chứng nguồn.
+Source images are in `data/source_subset/`, in nine class directories.
 
-Target là AID, cùng không gian nhãn. Tôi từng test 20 ảnh/lớp = 180 ảnh trên
-Windows. Code không bắt buộc số lượng cố định hoặc cân bằng, nhưng cần đủ lớp.
-Không mặc định máy hiện tại có AID, weights hoặc outputs từ máy Windows.
+The airplane and basketball_court classes were removed. Class index order is
+as listed above. On 04/10/2026, the user confirmed the source as NWPU-RESISC45:
+https://huggingface.co/datasets/blanchon/RESISC45
+The target is from AID: https://huggingface.co/datasets/blanchon/AID
+Dataset pages have been checked. Audit on 04/10/2026: SHA-256 of 900 local source
+images matches LFS metadata at the RESISC45 revision pinned in DATA.md.
+A frozen manifest and source ZIP can reconstruct the current subset;
+Windows run source manifests have not been verified. Historical download
+revision and subset selection procedure are unknown. Keep source_subset in
+code; distinguish declared origin from the byte/metadata matching performed.
 
-Manifest gồm path, label, class_index, fold, domain và SHA-256. Hash phát hiện
-file trùng nội dung, không đảm bảo phát hiện ảnh gần trùng/cùng địa điểm.
-Chưa có metadata để tách riêng ảnh hưởng địa lý, mùa, thời tiết hay sensor.
+Three target directories have been provided and stored at
+data/aid_subsets/{clean,bright,lowres}, each with 180 images. The reconstructed
+clean manifest matches the hash of all 12 clean runs; bright/lowres filenames
+and labels match all prediction CSVs. Frozen manifests and ZIPs/restore script
+are documented in DATA.md. Checkpoints, processing formulas, and original-image
+mappings between the three sets are not available yet.
+
+The target is AID with the same label space. I previously tested 20 images per
+class = 180 images on Windows. Code does not require fixed or balanced counts,
+but all classes must be present. Do not assume the current machine has AID,
+weights, or outputs from the Windows machine.
+
+Manifests contain path, label, class_index, fold, domain, and SHA-256. Hashes
+detect identical file contents but do not guarantee detection of near-duplicates
+or images of the same location. Metadata is unavailable to separately identify
+geographic, seasonal, weather, or sensor effects.
 
 3. MODELS
 
-- small_cnn: bốn Conv-BatchNorm-ReLU-MaxPool blocks, kênh 3→32→64→128→256,
-  global average pooling, dropout 0,30, classifier 9 lớp; khởi tạo ngẫu nhiên.
-- resnet18_scratch: torchvision ResNet18, weights=None, thay fc thành 9 lớp.
-- resnet18_pretrained: cùng kiến trúc, ImageNet pretrained, fc mới 9 lớp.
-- deit_tiny_pretrained: timm deit_tiny_patch16_224.fb_in1k, pretrained, 9 lớp.
+- small_cnn: four Conv-BatchNorm-ReLU-MaxPool blocks, channels 3→32→64→128→256,
+  global average pooling, dropout 0.30, a 9-class classifier; random initialization.
+- resnet18_scratch: torchvision ResNet18, weights=None, replace fc with 9 outputs.
+- resnet18_pretrained: same architecture, ImageNet pretrained, new 9-class fc.
+- deit_tiny_pretrained: timm deit_tiny_patch16_224.fb_in1k, pretrained, 9 classes.
 
-Cặp ResNet18 scratch/pretrained kiểm soát architecture để nghiên cứu pretraining.
-Không kết luận pretrained luôn tốt hơn. Hiện fine-tune toàn mạng, chưa có freeze
-backbone, learning rate phân nhóm hoặc fine-tune hai giai đoạn. Project không
-triển khai distillation loss/teacher chỉ vì dùng tên DeiT.
+The scratch/pretrained ResNet18 pair controls architecture to study pretraining.
+Do not conclude that pretrained models are always better. Currently the whole
+network is fine-tuned; backbone freezing, grouped learning rates, and two-stage
+fine-tuning are not implemented. The project does not implement a distillation
+loss/teacher simply because it uses the DeiT name.
 
-4. PIPELINE VÀ CẤU HÌNH THỰC TẾ
+4. ACTUAL PIPELINE AND CONFIGURATION
 
 prepare_manifests.py → source.csv / aid_test.csv / summary.json
-→ development trên source train/validation để chọn epoch
-→ tạo lại model, train toàn bộ source theo epoch đã chọn
-→ sau khi mọi model đã train xong, test AID
-→ tổng hợp model/seed và báo cáo từng lớp.
+→ development on source training/validation to select epochs
+→ recreate the model, train on the entire source for the selected epoch count
+→ test AID after all models finish training
+→ aggregate models/seeds and report per-class results.
 
-Source có 5 fold. Seeds mặc định 13,37,73 lần lượt dùng validation folds 0,1,2;
-không gọi đây là full 5-fold CV hoặc chỉ dao động initialization seed.
-Split seed mặc định: 20260926.
+The source has 5 folds. Default seeds 13,37,73 use validation folds 0,1,2
+respectively; do not call this full 5-fold CV or variation solely from
+initialization seeds. Default split seed: 20260926.
 
-Input 224×224 RGB, normalization ImageNet. Train có random crop, flip và xoay
-bội 90°; eval Resize(256) + CenterCrop(224). Optimizer AdamW, lr 3e-4,
-weight_decay 1e-4, CrossEntropyLoss, CosineAnnealingLR, max 50 epoch,
-patience 8, batch_size 32, workers 4. AMP chỉ bật cho CUDA khi có cờ.
+Input 224×224 RGB, ImageNet normalization. Training uses random crop, flips,
+and rotation by multiples of 90°; evaluation uses Resize(256) + CenterCrop(224).
+Optimizer AdamW, lr 3e-4, weight_decay 1e-4, CrossEntropyLoss, CosineAnnealingLR,
+maximum 50 epochs, patience 8, batch_size 32, workers 4.
+AMP is enabled only for CUDA when the flag is provided.
 
-best.pt ở development là checkpoint validation tốt nhất; ở final là weights
-epoch cuối của số epoch đã khóa. Không chọn final checkpoint bằng target.
-Final refit không tiếp tục từ development weights; T_max scheduler theo số
-epoch của run. --skip-existing không phải resume optimizer.
+Development best.pt is the best validation checkpoint; final best.pt contains
+last-epoch weights for the fixed epoch count. Do not select final checkpoints
+using the target. Final refit does not continue from development weights;
+scheduler T_max follows the run's epoch count. --skip-existing does not resume
+the optimizer.
 
-configs/experiment.json hiện chỉ mô tả nghiên cứu, chưa được nạp làm runtime
-config. CLI/defaults trong script mới điều khiển lệnh chạy. Hãy kiểm tra lại
-điều này trên code mới nhất trước khi sửa cấu hình.
+configs/experiment.json currently only describes the study; it is not loaded
+as runtime configuration. CLI arguments/script defaults control execution.
+Recheck this against the latest code before changing configuration.
 
-5. ROBUSTNESS ĐÃ THÊM VÀO CODE
+5. ROBUSTNESS ADDED TO THE CODE
 
-Hai profile: baseline (mặc định) và weather_robust.
-Bốn yếu tố:
-- cloud_haze: lớp phủ mây/sương mô phỏng.
-- illumination: độ sáng/tương phản.
-- resolution: giảm độ phân giải/blur.
-- sensor_noise: nhiễu Gaussian trên RGB.
+Two profiles: baseline (default) and weather_robust.
+Four factors:
+- cloud_haze: simulated cloud/haze overlay.
+- illumination: brightness/contrast.
+- resolution: reduced resolution/blur.
+- sensor_noise: Gaussian noise on RGB.
 
-Robust training: 50% không thêm suy giảm, 50% chọn một yếu tố mức 1 hoặc 2;
-augmentation cơ bản vẫn có. Không sửa ảnh gốc.
+Robust training: 50% no additional degradation, 50% select one factor at severity
+1 or 2; basic augmentation remains. Original images are not modified.
 
-Baseline chọn epoch bằng clean source-validation macro-F1.
-Robust chọn bằng trung bình F1 của 5 điều kiện source validation: sạch và bốn
-biến đổi mức 2, seed cố định 7919. Không dùng AID để chọn epoch/hyperparameter.
-Đây là thay đổi cả augmentation và selection criterion; muốn tách riêng tác
-động augmentation cần ablation phù hợp.
+Baseline selects epochs by clean source-validation macro-F1.
+Robust selects by mean F1 across 5 source validation conditions: clean and four
+severity-2 transformations, fixed seed 7919. AID is not used to select epochs
+or hyperparameters. This changes both augmentation and selection criterion;
+isolating augmentation effects requires an appropriate ablation.
 
-scripts/evaluate_robustness.py test một checkpoint ở 13 điều kiện:
-clean + 4 yếu tố × 3 mức. Corruption seed mặc định 2026; RNG dựa trên hash ảnh,
-condition, seed và version optical-proxies-v1, độc lập với seed training.
-Mức 3 không dùng trong train/validation. Mọi model phải dùng cùng target manifest
-và corruption seed. 180 ảnh × 13 điều kiện vẫn chỉ là 180 ảnh độc lập.
+scripts/evaluate_robustness.py tests one checkpoint under 13 conditions:
+clean + 4 factors × 3 severities. Default corruption seed 2026; RNG depends on
+image hash, condition, seed, and version optical-proxies-v1, independently of
+the training seed. Severity 3 is not used in training/validation. Every model
+must use the same target manifest and corruption seed.
+180 images × 13 conditions still means only 180 independent images.
 
-Xuất robustness.csv, summary.json, robustness_curves.png và metrics/predictions/
-confusion matrix/F1 từng lớp cho mỗi điều kiện. Drop tính theo điểm phần trăm
-so với clean AID, không phải same-domain/cross-domain gap.
+Exports robustness.csv, summary.json, robustness_curves.png, and metrics/
+predictions/confusion matrices/per-class F1 for each condition. Drops are
+percentage-point differences relative to clean AID, not a same-domain/
+cross-domain gap.
 
-Các phép biến đổi chỉ là proxy. Chưa có bằng chứng về bão thật, địa lý/mùa thật,
-sensor thật, khôi phục mặt đất bị mây che kín hoặc phát hiện thiệt hại.
+Transformations are proxies only. There is no evidence about real storms,
+real geography/seasons, real sensors, recovery of ground information under
+complete cloud cover, or damage detection yet.
 
-6. KẾT QUẢ CŨ VÀ TRẠNG THÁI KIỂM CHỨNG
+6. OLD RESULTS AND VERIFICATION STATUS
 
-Accuracy trung bình từ CSV tôi từng cung cấp, thứ tự CUDA / CPU:
-- SmallCNN: 68,33% / 68,33%.
-- ResNet18 scratch: 71,11% / 77,22%.
-- ResNet18 pretrained: 90,37% / 93,52%.
-- DeiT-Tiny pretrained: 93,33% / 94,07%.
+Mean accuracy from CSVs I previously provided, in CUDA / CPU order:
+- SmallCNN: 68.33% / 68.33%.
+- ResNet18 scratch: 71.11% / 77.22%.
+- ResNet18 pretrained: 90.37% / 93.52%.
+- DeiT-Tiny pretrained: 93.33% / 94.07%.
 
-Đây là kết quả cũ, không phải kết quả weather_robust. Chưa làm rõ CPU train lại
-hay chỉ test checkpoint CUDA và chưa xác minh đầy đủ cùng manifest/seed/config.
-Không kết luận CPU chính xác hơn CUDA hoặc lấy kết quả cao nhất mỗi môi trường
-để ghép thành một bảng thí nghiệm chính.
+These are old results, not weather_robust results. Whether CPU runs retrained
+or only tested CUDA checkpoints remains unclear, and identical manifests/seeds/
+configuration have not been fully verified. Do not conclude that CPU is more
+accurate than CUDA or combine the highest results from each environment into
+one main experiment table.
 
-Phiên trước đã chạy 10 unit test và kiểm tra biến đổi trên một ảnh source thật.
-Chưa chạy PyTorch/Matplotlib end-to-end bản mới trên Mac; chưa có weights/kết quả
-robust mới được xác nhận. Không coi unit test pass là bằng chứng accuracy tăng.
+The previous session ran 10 unit tests and checked transformations on a real
+source image. The new PyTorch/Matplotlib pipeline has not been run end to end
+on the Mac; new robust weights/results have not been confirmed. Passing unit
+tests is not evidence of improved accuracy.
 
-180 ảnh AID đã được xem khi phân tích cải tiến. Nếu tiếp tục dùng chúng để chọn
-model/phương pháp, coi là exploratory/development target và cần tập target mới
-chưa xem cho kết quả cuối. Tạo bản biến đổi của ảnh cũ không làm chúng độc lập lại.
+The 180 AID images were viewed while analyzing improvements. If continuing to
+use them for model/method selection, treat them as an exploratory/development
+target and obtain a new unseen target set for final results. Transforming old
+images does not make them independent again.
 
-7. ARTIFACTS VÀ METRICS
+7. ARTIFACTS AND METRICS
 
-Đã có lưu manifest thực tế theo run, seed/config/device/library versions,
-checkpoint hash và code provenance. Có accuracy, balanced accuracy, macro
-precision/recall/F1, per-class metrics, confusion matrices, ECE 15 bins,
-training curves và bảng mean±SD qua run.
+Actual per-run manifests, seed/configuration/device/library versions, checkpoint
+hashes, and code provenance are recorded. Available metrics include accuracy,
+balanced accuracy, macro precision/recall/F1, per-class metrics, confusion
+matrices, ECE with 15 bins, training curves, and mean±SD tables across runs.
 
-Mean±SD không phải confidence interval. Chưa có bootstrap CI, NLL/reliability
-diagram hoặc calibration fitting. Confidence softmax không đảm bảo xác suất
-đúng dưới domain shift. Classifier chưa có OOD detection/từ chối dự đoán.
+Mean±SD is not a confidence interval. Bootstrap CI, NLL/reliability diagrams,
+and calibration fitting are not implemented yet. Softmax confidence does not
+guarantee correctness probabilities under domain shift. The classifier has no
+OOD detection/prediction rejection yet.
 
-Chỉ có CSV tổng hợp thì không khôi phục đủ weights, manifest hoặc training curve.
-Nếu còn history.json/metrics.json có thể dùng python -m satdomain.reports để
-xuất lại biểu đồ. Output/checkpoint thường không được commit Git.
+Aggregate CSVs alone cannot recover complete weights, manifests, or training
+curves. If history.json/metrics.json remain available, use
+python -m satdomain.reports to regenerate plots. Outputs/checkpoints are usually
+not committed to Git.
 
-8. FILE CẦN ĐỌC ĐỂ TIẾP TỤC
+8. FILES TO READ BEFORE CONTINUING
 
-Đọc PROJECT_ANALYSIS_VI.md, README.md, research/methodology.md,
-ROBUSTNESS_GUIDELINE.md, RESEARCH_ARTIFACTS_GUIDELINE.md và WINDOWS_GUIDELINE.md.
-Sau đó đọc các file code liên quan đến nhiệm vụ:
-- data/model: constants.py, data.py, models.py.
+Read PROJECT_ANALYSIS_VI.md, README.md, research/methodology.md,
+ROBUSTNESS_GUIDELINE.md, RESEARCH_ARTIFACTS_GUIDELINE.md, and WINDOWS_GUIDELINE.md.
+Then read code relevant to the task:
+- data/models: constants.py, data.py, models.py.
 - training: train.py, scripts/run_study.py.
 - evaluation: evaluate.py, metrics.py, scripts/aggregate_results.py.
 - robustness: robustness.py, scripts/evaluate_robustness.py.
 - artifacts/inference: artifacts.py, reports.py, infer.py, runtime.py.
 
-Package nằm trong src/satdomain/. Wrapper Windows nằm trong scripts/.
-Giữ nguyên các thay đổi chưa commit của tôi; không reset/xóa output/checkpoint.
+The package is in src/satdomain/. Windows wrappers are in scripts/.
+Preserve my uncommitted changes; do not reset/delete outputs/checkpoints.
 
-9. MÔI TRƯỜNG VÀ CÁCH LÀM VIỆC
+9. ENVIRONMENT AND WORKING PROCEDURE
 
-Mac dùng phát triển code/tài liệu; train/test đầy đủ chạy trên máy Windows của tôi.
-Không tự cài PyTorch hoặc khởi chạy training trên Mac khi chưa có yêu cầu mới.
-Tuân thủ AGENTS.md máy dùng chung: giới hạn worker, không stress/load test,
-không Docker/Colima trên Mac, không vượt hạn chế tài nguyên, dọn process khi xong.
+The Mac is used for code/documentation development; full training/testing runs
+on my Windows machine. Do not install PyTorch or launch training on the Mac
+without a new request. Follow the shared machine's AGENTS.md: limit workers,
+no stress/load tests, no Docker/Colima on the Mac, do not exceed resource limits,
+and clean up processes when finished.
 
-Hãy tiến hành nhiệm vụ tôi điền ở đầu prompt. Trước tiên kiểm tra trạng thái repo
-và thông tin liên quan; nếu không truy cập được file thì nói rõ, không giả vờ
-đã đọc. Với thông tin thiếu làm đổi bản chất bài toán, hãy hỏi ngắn gọn.
+Perform the task filled in at the start of this prompt. First check repository
+status and relevant information; if files are inaccessible, say so rather than
+pretending to have read them. Ask briefly about missing information that changes
+the nature of the problem.
 
-Khi thay code: giải thích thay đổi, kiểm tra phù hợp và nêu phần chưa kiểm chứng.
-Khi phân tích kết quả: gắn từng con số với checkpoint/manifest/seed/môi trường;
-phân biệt quan sát, giả thuyết và kết luận được bằng chứng hỗ trợ.
-Khi hướng dẫn tự học: chỉ rõ file/hàm cần đọc, mức quan trọng và câu hỏi cần hiểu.
+When changing code: explain changes, perform appropriate checks, and state
+what remains unverified.
+When analyzing results: associate every number with its checkpoint/manifest/
+seed/environment; distinguish observations, hypotheses, and evidence-supported
+conclusions.
+When guiding self-study: identify files/functions to read, their importance,
+and questions to understand.
 ```

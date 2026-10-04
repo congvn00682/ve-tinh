@@ -1,0 +1,18 @@
+{
+  "checked_on": "2026-10-04",
+  "note": "Pinned mirror references for reproduction; not assumed to be the original download revisions of historical experiments.",
+  "source": {
+    "official_url": "https://gcheng-nwpu.github.io/#Datasets",
+    "mirror_url": "https://huggingface.co/datasets/blanchon/RESISC45",
+    "reference_revision": "f8fb2c69b80203f0b9a622f9fdb7f6a6001a1676"
+  },
+  "target": {
+    "official_url": "https://captain-whu.github.io/AID/",
+    "mirror_url": "https://huggingface.co/datasets/blanchon/AID",
+    "reference_revision": "d9b5531544523f29d365a77a007b2ace3cea6882",
+    "historical_download_revision": null,
+    "historical_target_manifest_available": true,
+    "clean_manifest_reconstructed_and_matches_reported_sha256": true,
+    "target_snapshot_metadata": "data/provenance/aid_subsets_v1.json"
+  }
+}

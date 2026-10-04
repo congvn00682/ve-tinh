@@ -1,0 +1,53 @@
+{
+  "version": "source-subset-v1",
+  "created_on": "2026-10-04",
+  "description": "Frozen snapshot of the 900 source images currently in this repository; not a claim about historical Windows run manifests.",
+  "source_dataset": "NWPU-RESISC45",
+  "official_url": "https://gcheng-nwpu.github.io/#Datasets",
+  "mirror_id": "blanchon/RESISC45",
+  "mirror_url": "https://huggingface.co/datasets/blanchon/RESISC45",
+  "mirror_revision": "f8fb2c69b80203f0b9a622f9fdb7f6a6001a1676",
+  "upstream_path_prefix": "data/",
+  "upstream_identity_check": "All 900 image SHA-256 values match LFS SHA-256 metadata at the pinned revision; remote image bytes have not been individually downloaded in this audit.",
+  "original_download_revision": "unknown",
+  "original_subset_selection_method": "not recorded; exact retained images are enumerated in source_subset_v1.csv",
+  "manifest_file": "source_subset_v1.csv",
+  "manifest_sha256": "488d846a8adaa91e4d8da038252d63cd7f33ff9613083ee86c49369af2d68dda",
+  "images": 900,
+  "class_names": [
+    "airport",
+    "baseball_diamond",
+    "beach",
+    "bridge",
+    "church",
+    "commercial_area",
+    "dense_residential",
+    "desert",
+    "forest"
+  ],
+  "class_counts": {
+    "airport": 100,
+    "baseball_diamond": 100,
+    "beach": 100,
+    "bridge": 100,
+    "church": 100,
+    "commercial_area": 100,
+    "dense_residential": 100,
+    "desert": 100,
+    "forest": 100
+  },
+  "split_seed": 20260926,
+  "folds": 5,
+  "fold_counts": {
+    "4": 180,
+    "2": 180,
+    "0": 180,
+    "3": 180,
+    "1": 180
+  },
+  "split_protocol": "development: fold 0/1/2 for seeds 13/37/73 in current default run_study.py; final refit: all 900 source images; no source test set",
+  "offline_preprocessing": "Image bytes retained unchanged; no crop, normalization or corruptions written to disk in this snapshot.",
+  "license_as_reported_by_official_page": "CC BY-NC 4.0",
+  "license_url": "https://creativecommons.org/licenses/by-nc/4.0/",
+  "citation": "Gong Cheng, Junwei Han, Xiaoqiang Lu. Remote Sensing Image Scene Classification: Benchmark and State of the Art. Proceedings of the IEEE, 105(10):1865-1883, 2017."
+}

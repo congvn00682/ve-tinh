@@ -1,0 +1,10 @@
+true_label,airport,baseball_diamond,beach,bridge,church,commercial_area,dense_residential,desert,forest
+airport,0,0,7,0,10,2,0,1,0
+baseball_diamond,0,15,0,0,2,0,0,3,0
+beach,0,0,17,0,0,0,0,3,0
+bridge,0,2,11,4,0,3,0,0,0
+church,0,0,0,1,11,8,0,0,0
+commercial_area,0,0,0,0,2,17,1,0,0
+dense_residential,1,0,0,0,8,7,4,0,0
+desert,0,0,3,0,0,0,0,17,0
+forest,1,0,13,0,1,1,1,0,3

@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "imported_on": "2026-10-04",
+  "origin": "CSV files supplied by the user in this conversation; copied without changing bytes.",
+  "environment_user_reported": "NVIDIA CUDA",
+  "cuda_used_for_training_and_or_evaluation": "not_confirmed",
+  "gpu_model": null,
+  "torch_version": null,
+  "cuda_version": null,
+  "training_profile": "not_confirmed_baseline_or_weather_robust",
+  "training_config_verified": false,
+  "validation_folds_verified": false,
+  "checkpoint_files_available": false,
+  "original_target_manifest_available": false,
+  "clean_predictions_available": false,
+  "training_history_available": false,
+  "degraded_checkpoint_identity_verified": false,
+  "image_sets_paired_across_conditions": null,
+  "image_pairing_status": "not_verified; bright and lowres filename sets differ; renaming has not been ruled out",
+  "datasets_user_reported": {
+    "source_url": "https://huggingface.co/datasets/blanchon/RESISC45",
+    "target_url": "https://huggingface.co/datasets/blanchon/AID",
+    "source_subset_images": 900,
+    "source_images_per_class": 100,
+    "target_images_per_condition_per_seed": 180,
+    "target_images_per_class": 20,
+    "download_revision": null,
+    "subset_selection_method": null
+  },
+  "conditions": {
+    "clean": {
+      "description": "Earlier cross-domain results supplied by user; clean condition inferred from conversation, not recorded in submitted CSV schema.",
+      "condition_verified_from_run_metadata": false
+    },
+    "bright": {
+      "description_user_reported": "brightness increased by 30 and contrast by 100",
+      "tool": null,
+      "formula": null,
+      "image_hashes_available": false
+    },
+    "lowres": {
+      "description_user_reported": "blurred images; filenames carry lowres",
+      "tool": null,
+      "blur_parameters": null,
+      "resampling_parameters": null,
+      "image_hashes_available": false
+    }
+  },
+  "relationship_to_optical_proxies_v1": "not_verified; these CSVs are not evidence that the repository corruption pipeline generated the images",
+  "test_status": "exploratory; user previously inspected AID results for method development",
+  "files": [
+    {
+      "path": "raw/clean/cross_domain_models.csv",
+      "source_attachment": "cross_domain_models copy 4.csv",
+      "sha256": "2af4ae1bf601904622473e44c824ce826b7d9e9a47460d995c8ddba8a027e149"
+    },
+    {
+      "path": "raw/clean/cross_domain_runs.csv",
+      "source_attachment": "cross_domain_runs copy.csv",
+      "sha256": "713dedefe88cacf3f48464264cdb6593a65345c7d0d1e638a154c72eff3db849"
+    },
+    {
+      "path": "raw/clean/per_class_models.csv",
+      "source_attachment": "per_class_models copy.csv",
+      "sha256": "32958fc7d7ec367894caa59f15483894d0a504d6b63938b0b3c4584270173d17"
+    },
+    {
+      "path": "raw/clean/per_class_runs.csv",
+      "source_attachment": "per_class_runs copy.csv",
+      "sha256": "c8a6f11bffdc7003e51939c4eac2c7c7ee385be99ea12ded21eea0790bf74487"
+    },
+    {
+      "path": "raw/bright/small_cnn.csv",
+      "source_attachment": "ket_qua_danh_gia_small_cnn_bright.csv",
+      "sha256": "52a942537a78099a8a4953e5bee6f206fa3eaff3e2a70126248429e10b661552"
+    },
+    {
+      "path": "raw/bright/resnet18_scratch.csv",
+      "source_attachment": "ket_qua_danh_gia_resnet18_scratch_bright.csv",
+      "sha256": "cb26cec6c1531e468626a9baa5b73a2783779c32cffb1338c4fa0c63f809903e"
+    },
+    {
+      "path": "raw/bright/resnet18_pretrained.csv",
+      "source_attachment": "ket_qua_danh_gia_resnet18_pretrained_bright.csv",
+      "sha256": "d604caa646922f16aeab4295815959a06fee2a65cd5b6522754f3109afd8198d"
+    },
+    {
+      "path": "raw/bright/deit_tiny_pretrained.csv",
+      "source_attachment": "ket_qua_danh_gia_deit_tiny_pretrained_bright.csv",
+      "sha256": "2e2a330d71cb5ed205ca5422eb0a20ff60455628c582b0272d34b27b7338149e"
+    },
+    {
+      "path": "raw/lowres/small_cnn.csv",
+      "source_attachment": "ket_qua_danh_gia_small_cnn_lowres.csv",
+      "sha256": "fca798380e645ec98a5cb058592b3f77ad92eaa6eefa4d97dbe8f7d5284c2c8e"
+    },
+    {
+      "path": "raw/lowres/resnet18_scratch.csv",
+      "source_attachment": "ket_qua_danh_gia_resnet18_scratch_lowres.csv",
+      "sha256": "7a9f5e5912d50b17f3390e234fbe099a956ece410235564f562d99d8c22a77ee"
+    },
+    {
+      "path": "raw/lowres/resnet18_pretrained.csv",
+      "source_attachment": "ket_qua_danh_gia_resnet18_pretrained_lowres.csv",
+      "sha256": "cc90e6dc33de72ada06ecaf3b7b7a334348296dd0d77a0f5bac972cdface7339"
+    },
+    {
+      "path": "raw/lowres/deit_tiny_pretrained.csv",
+      "source_attachment": "ket_qua_danh_gia_deit_tiny_pretrained_lowres.csv",
+      "sha256": "d08ce8e92fec94d99253eee147c094005fb04951fa24dc050678651f67840f08"
+    }
+  ]
+}

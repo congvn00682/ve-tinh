@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "version": "aid-subsets-v1",
+  "created_on": "2026-10-04",
+  "dataset": "AID",
+  "official_url": "https://captain-whu.github.io/AID/",
+  "mirror_url": "https://huggingface.co/datasets/blanchon/AID",
+  "reference_mirror_revision": "d9b5531544523f29d365a77a007b2ace3cea6882",
+  "historical_download_revision": null,
+  "upstream_image_identity_verified": false,
+  "class_names": [
+    "airport",
+    "baseball_diamond",
+    "beach",
+    "bridge",
+    "church",
+    "commercial_area",
+    "dense_residential",
+    "desert",
+    "forest"
+  ],
+  "domain": "target",
+  "total_images": 540,
+  "origin": "Three image folders supplied by user as their actual test data in this conversation.",
+  "conditions": {
+    "clean": {
+      "version": "aid-clean-v1",
+      "manifest": "aid_clean_v1.csv",
+      "manifest_sha256": "c71a5411bf4bd3ce22f53ec1d6594180279aaaf76e3bff776fa9b3c55fa8c599",
+      "root_subdirectory": "clean",
+      "original_upload_folder": "aid_target",
+      "images": 180,
+      "class_counts": {
+        "airport": 20,
+        "baseball_diamond": 20,
+        "beach": 20,
+        "bridge": 20,
+        "church": 20,
+        "commercial_area": 20,
+        "dense_residential": 20,
+        "desert": 20,
+        "forest": 20
+      },
+      "image_headers": [
+        {
+          "width": 600,
+          "height": 600,
+          "format": "JPEG",
+          "color_header": "components=3",
+          "images": 162
+        },
+        {
+          "width": 600,
+          "height": 600,
+          "format": "PNG",
+          "color_header": "color_type=2",
+          "images": 18
+        }
+      ],
+      "header_check_scope": "Metadata only; not a full pixel decoding test.",
+      "image_bytes": 41322073,
+      "archive": "aid_clean_v1.zip",
+      "preprocessing_during_import": "none; images copied byte-for-byte; .DS_Store excluded",
+      "processing_user_reported": "clean AID images",
+      "original_processing_tool": null,
+      "original_processing_formula": null
+    },
+    "bright": {
+      "version": "aid-bright-v1",
+      "manifest": "aid_bright_v1.csv",
+      "manifest_sha256": "e814598c68ec6bd6e9cb9902804e0581ee278061c64fd9c06d8220230b0bfe32",
+      "root_subdirectory": "bright",
+      "original_upload_folder": "aid_bright copy",
+      "images": 180,
+      "class_counts": {
+        "airport": 20,
+        "baseball_diamond": 20,
+        "beach": 20,
+        "bridge": 20,
+        "church": 20,
+        "commercial_area": 20,
+        "dense_residential": 20,
+        "desert": 20,
+        "forest": 20
+      },
+      "image_headers": [
+        {
+          "width": 600,
+          "height": 600,
+          "format": "JPEG",
+          "color_header": "components=3",
+          "images": 180
+        }
+      ],
+      "header_check_scope": "Metadata only; not a full pixel decoding test.",
+      "image_bytes": 33258191,
+      "archive": "aid_bright_v1.zip",
+      "preprocessing_during_import": "none; images copied byte-for-byte; .DS_Store excluded",
+      "processing_user_reported": "brightness increased by 30, contrast by 100",
+      "original_processing_tool": null,
+      "original_processing_formula": null
+    },
+    "lowres": {
+      "version": "aid-lowres-v1",
+      "manifest": "aid_lowres_v1.csv",
+      "manifest_sha256": "cb340179dc58819514da3258610fa113eef0a1b014e2980c16aeb0eff2e3b320",
+      "root_subdirectory": "lowres",
+      "original_upload_folder": "aid_lowres",
+      "images": 180,
+      "class_counts": {
+        "airport": 20,
+        "baseball_diamond": 20,
+        "beach": 20,
+        "bridge": 20,
+        "church": 20,
+        "commercial_area": 20,
+        "dense_residential": 20,
+        "desert": 20,
+        "forest": 20
+      },
+      "image_headers": [
+        {
+          "width": 300,
+          "height": 300,
+          "format": "JPEG",
+          "color_header": "components=3",
+          "images": 180
+        }
+      ],
+      "header_check_scope": "Metadata only; not a full pixel decoding test.",
+      "image_bytes": 5887202,
+      "archive": "aid_lowres_v1.zip",
+      "preprocessing_during_import": "none; images copied byte-for-byte; .DS_Store excluded",
+      "processing_user_reported": "blurred images; filenames carry lowres",
+      "original_processing_tool": null,
+      "original_processing_formula": null
+    }
+  },
+  "clean_manifest_matches_all_12_reported_runs": true,
+  "degraded_filename_label_sets_match_all_prediction_csvs": true,
+  "source_target_exact_content_overlap": 0,
+  "across_condition_exact_content_overlap": 0,
+  "across_condition_filename_label_overlap": 0,
+  "underlying_original_image_pairing": "unknown; disjoint names and bytes do not establish distinct underlying scenes",
+  "historical_degraded_image_hashes_available": false,
+  "transform_creation_code_available": false,
+  "checkpoint_files_verified": false,
+  "archive_contents": "Preserved supplied image bytes, exact target manifest, bundle metadata and attribution notice."
+}

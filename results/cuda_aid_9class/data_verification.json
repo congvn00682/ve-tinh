@@ -1,0 +1,118 @@
+{
+  "verified_on": "2026-10-04",
+  "snapshot_metadata": "data/provenance/aid_subsets_v1.json",
+  "snapshot_metadata_sha256": "8cf3206c13eaae20433b43c6c8e290aac68e7014c22e0b4a84cc5040de46e71b",
+  "clean_manifest_sha256": "c71a5411bf4bd3ce22f53ec1d6594180279aaaf76e3bff776fa9b3c55fa8c599",
+  "clean_manifest_matches_all_12_reported_runs": true,
+  "current_source_target_exact_content_overlap": 0,
+  "degraded_prediction_csv_checks": [
+    {
+      "condition": "bright",
+      "architecture": "small_cnn",
+      "csv": "results/cuda_aid_9class/raw/bright/small_cnn.csv",
+      "csv_sha256": "52a942537a78099a8a4953e5bee6f206fa3eaff3e2a70126248429e10b661552",
+      "seeds": [
+        13,
+        37,
+        73
+      ],
+      "filename_label_sets_match": true,
+      "historical_image_hash_in_prediction_csv": false
+    },
+    {
+      "condition": "bright",
+      "architecture": "resnet18_scratch",
+      "csv": "results/cuda_aid_9class/raw/bright/resnet18_scratch.csv",
+      "csv_sha256": "cb26cec6c1531e468626a9baa5b73a2783779c32cffb1338c4fa0c63f809903e",
+      "seeds": [
+        13,
+        37,
+        73
+      ],
+      "filename_label_sets_match": true,
+      "historical_image_hash_in_prediction_csv": false
+    },
+    {
+      "condition": "bright",
+      "architecture": "resnet18_pretrained",
+      "csv": "results/cuda_aid_9class/raw/bright/resnet18_pretrained.csv",
+      "csv_sha256": "d604caa646922f16aeab4295815959a06fee2a65cd5b6522754f3109afd8198d",
+      "seeds": [
+        13,
+        37,
+        73
+      ],
+      "filename_label_sets_match": true,
+      "historical_image_hash_in_prediction_csv": false
+    },
+    {
+      "condition": "bright",
+      "architecture": "deit_tiny_pretrained",
+      "csv": "results/cuda_aid_9class/raw/bright/deit_tiny_pretrained.csv",
+      "csv_sha256": "2e2a330d71cb5ed205ca5422eb0a20ff60455628c582b0272d34b27b7338149e",
+      "seeds": [
+        13,
+        37,
+        73
+      ],
+      "filename_label_sets_match": true,
+      "historical_image_hash_in_prediction_csv": false
+    },
+    {
+      "condition": "lowres",
+      "architecture": "small_cnn",
+      "csv": "results/cuda_aid_9class/raw/lowres/small_cnn.csv",
+      "csv_sha256": "fca798380e645ec98a5cb058592b3f77ad92eaa6eefa4d97dbe8f7d5284c2c8e",
+      "seeds": [
+        13,
+        37,
+        73
+      ],
+      "filename_label_sets_match": true,
+      "historical_image_hash_in_prediction_csv": false
+    },
+    {
+      "condition": "lowres",
+      "architecture": "resnet18_scratch",
+      "csv": "results/cuda_aid_9class/raw/lowres/resnet18_scratch.csv",
+      "csv_sha256": "7a9f5e5912d50b17f3390e234fbe099a956ece410235564f562d99d8c22a77ee",
+      "seeds": [
+        13,
+        37,
+        73
+      ],
+      "filename_label_sets_match": true,
+      "historical_image_hash_in_prediction_csv": false
+    },
+    {
+      "condition": "lowres",
+      "architecture": "resnet18_pretrained",
+      "csv": "results/cuda_aid_9class/raw/lowres/resnet18_pretrained.csv",
+      "csv_sha256": "cc90e6dc33de72ada06ecaf3b7b7a334348296dd0d77a0f5bac972cdface7339",
+      "seeds": [
+        13,
+        37,
+        73
+      ],
+      "filename_label_sets_match": true,
+      "historical_image_hash_in_prediction_csv": false
+    },
+    {
+      "condition": "lowres",
+      "architecture": "deit_tiny_pretrained",
+      "csv": "results/cuda_aid_9class/raw/lowres/deit_tiny_pretrained.csv",
+      "csv_sha256": "d08ce8e92fec94d99253eee147c094005fb04951fa24dc050678651f67840f08",
+      "seeds": [
+        13,
+        37,
+        73
+      ],
+      "filename_label_sets_match": true,
+      "historical_image_hash_in_prediction_csv": false
+    }
+  ],
+  "historical_degraded_image_bytes_verified_from_csv": false,
+  "paired_comparison_verified": false,
+  "checkpoint_files_verified": false,
+  "note": "Supplementary image evidence after CSV import; original CSVs and import provenance remain unchanged."
+}

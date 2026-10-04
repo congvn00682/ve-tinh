@@ -6,9 +6,21 @@ The study reports cross-domain results only. Models learn from the existing
 source subset and are evaluated on the AID subset. There is no same-domain test
 result and no same-domain/cross-domain gap in the final report.
 
-The source folders match NWPU-RESISC45 naming and image dimensions, but the
-repository does not contain provenance metadata. Reports must call it
-`source_subset` until its origin is documented.
+On 2026-10-04, the user identified the source as a NWPU-RESISC45 subset from
+[blanchon/RESISC45](https://huggingface.co/datasets/blanchon/RESISC45) and the
+target as an AID subset from
+[blanchon/AID](https://huggingface.co/datasets/blanchon/AID).
+The dataset pages have been inspected. The 900 local source image SHA-256 values
+match Hugging Face LFS metadata at the RESISC45 revision pinned in [DATA.md](../DATA.md).
+The reconstructed clean target manifest matches the SHA-256 reported by all
+12 clean Windows runs; the supplied bright/lowres filename-label sets match
+their prediction CSVs, which contain no image hashes. Historical source
+manifests and checkpoints have not been verified; the original download
+revision and processing procedure are not recorded. Supplied target image
+snapshots, manifests and ZIP archives are documented in DATA.md.
+Keep `source_subset` as the internal identifier. Reports may describe it as a
+NWPU-RESISC45 subset with user-reported origin, a content-matched current source
+snapshot, and these historical verification limits.
 
 Both domains use the same nine-class label space:
 
@@ -22,6 +34,7 @@ Both domains use the same nine-class label space:
 8. desert
 9. forest
 
+The source images are stored in `data/source_subset/`, with one subdirectory per class.
 The current source contains 100 images per class. Target class counts are not
 fixed and the tooling does not require a specific count. Actual counts must be
 recorded in the dataset summary.

@@ -18,6 +18,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$SourceRoot = Join-Path $ProjectRoot "data\source_subset"
 $PythonExe = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
 $ManifestRoot = Join-Path $ProjectRoot "data\manifests"
 if (-not [System.IO.Path]::IsPathRooted($OutputRoot)) {
@@ -56,7 +57,7 @@ Push-Location $ProjectRoot
 try {
     $ManifestArguments = @(
         "scripts/prepare_manifests.py",
-        "--source-root", ".",
+        "--source-root", $SourceRoot,
         "--aid-root", $AidRoot,
         "--output-dir", $ManifestRoot
     )
@@ -75,7 +76,7 @@ try {
         $SmokeArguments = @(
             "-m", "satdomain.train",
             "--manifest", (Join-Path $ManifestRoot "source.csv"),
-            "--data-root", ".",
+            "--data-root", $SourceRoot,
             "--arch", "small_cnn",
             "--mode", "development",
             "--validation-fold", "0",
@@ -99,7 +100,7 @@ try {
     $StudyArguments = @(
         "scripts/run_study.py",
         "--source-manifest", (Join-Path $ManifestRoot "source.csv"),
-        "--source-root", ".",
+        "--source-root", $SourceRoot,
         "--target-manifest", (Join-Path $ManifestRoot "aid_test.csv"),
         "--target-root", $AidRoot,
         "--output-root", $OutputRoot,

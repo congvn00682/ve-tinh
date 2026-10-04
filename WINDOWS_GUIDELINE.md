@@ -1,55 +1,57 @@
-# Hướng dẫn cài và chạy trên Windows
+# Installing and running on Windows
 
-Lưu bằng chứng thực nghiệm và xuất báo cáo từ kết quả cũ:
+Save experimental evidence and generate reports from previous results:
 [RESEARCH_ARTIFACTS_GUIDELINE.md](RESEARCH_ARTIFACTS_GUIDELINE.md).
-Thêm `-OutputRoot "D:\experiments\study_v2"` để tạo study riêng, tránh ghi đè.
+Add `-OutputRoot "D:\experiments\study_v2"` to create a separate study and avoid overwriting.
 
-Đây là quy trình ngắn dành riêng cho Windows 10/11. Hai PowerShell scripts đi
-kèm tự tạo virtual environment và gọi đúng Python bên trong `.venv`; người dùng
-không cần activate environment thủ công.
+This is a short procedure specifically for Windows 10/11. The two included
+PowerShell scripts automatically create a virtual environment and call the
+correct Python inside `.venv`; manual environment activation is unnecessary.
 
-## 1. Chuẩn bị
+## 1. Preparation
 
-Cài:
+Install:
 
-1. Python 3.11 hoặc 3.12 từ <https://www.python.org/downloads/windows/>.
-2. Git for Windows nếu chuyển project qua Git.
-3. NVIDIA driver nếu máy có NVIDIA GPU.
+1. Python 3.11 or 3.12 from <https://www.python.org/downloads/windows/>.
+2. Git for Windows if transferring the project through Git.
+3. The NVIDIA driver if the machine has an NVIDIA GPU.
 
-Copy hoặc clone toàn bộ repository rồi mở PowerShell tại thư mục `ve-tinh`.
+Copy or clone the entire repository, then open PowerShell in the `ve-tinh` directory.
+Source training images are in `data\source_subset\`, in nine class directories;
+`run_windows.ps1` uses this path automatically.
 
-## 2. Cho phép chạy script chỉ trong tiến trình hiện tại
+## 2. Allow scripts only in the current process
 
-Không cần thay đổi execution policy toàn hệ thống. Mọi lệnh dưới đây dùng:
+There is no need to change the system-wide execution policy. All commands below use:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File <script>
 ```
 
-## 3. Cài environment
+## 3. Install the environment
 
-### Cách đơn giản
+### Simple method
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\setup_windows.ps1
 ```
 
-Script sẽ:
+The script will:
 
-1. Tạo `.venv` bằng Python 3.12.
-2. Cập nhật pip.
-3. Cài `torch` và `torchvision`.
-4. Cài project cùng `timm`, pandas, scikit-learn, Pillow và matplotlib.
-5. Kiểm tra CUDA/MPS và import package.
+1. Create `.venv` using Python 3.12.
+2. Upgrade pip.
+3. Install `torch` and `torchvision`.
+4. Install the project with `timm`, pandas, scikit-learn, Pillow, and matplotlib.
+5. Check CUDA/MPS and import the package.
 
 ### NVIDIA CUDA
 
-Mở bộ chọn chính thức:
+Open the official installation selector:
 
 <https://docs.pytorch.org/get-started/locally/>
 
-Chọn Windows, Pip, Python và CUDA phù hợp. Lấy URL đứng sau `--index-url` trong
-lệnh do PyTorch cung cấp, sau đó chạy ví dụ:
+Select Windows, Pip, Python, and the appropriate CUDA option. Take the URL
+following `--index-url` in the command provided by PyTorch, then run this example:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\setup_windows.ps1 `
@@ -57,8 +59,8 @@ powershell -ExecutionPolicy Bypass -File scripts\setup_windows.ps1 `
   -RequireCuda
 ```
 
-Ví dụ trên cố ý không hard-code phiên bản CUDA vì PyTorch thay đổi các wheel
-được hỗ trợ theo thời gian.
+This example deliberately does not hard-code a CUDA version because PyTorch
+updates its supported wheels over time.
 
 ### CPU-only
 
@@ -67,19 +69,19 @@ powershell -ExecutionPolicy Bypass -File scripts\setup_windows.ps1 `
   -TorchIndexUrl "https://download.pytorch.org/whl/cpu"
 ```
 
-### Tạo lại environment
+### Recreate the environment
 
-Nếu environment cũ bị lỗi:
+If the old environment is broken:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\setup_windows.ps1 -RecreateVenv
 ```
 
-Thao tác này chỉ xóa `.venv`, không xóa dữ liệu, code, checkpoint hoặc outputs.
+This only deletes `.venv`; it does not delete data, code, checkpoints, or outputs.
 
-## 4. Chuẩn bị AID
+## 4. Prepare AID
 
-Ví dụ:
+Example:
 
 ```text
 D:\satellite-data\aid_target\
@@ -94,7 +96,7 @@ D:\satellite-data\aid_target\
   Forest\
 ```
 
-Số ảnh mỗi lớp có thể khác nhau nhưng mỗi lớp phải có ít nhất một ảnh.
+Image counts may differ between classes, but every class must have at least one image.
 
 ## 5. Smoke test
 
@@ -115,7 +117,7 @@ powershell -ExecutionPolicy Bypass -File scripts\run_windows.ps1 `
   -SmokeOnly
 ```
 
-Smoke test chạy SmallCNN trong hai epoch. Thành công khi có:
+The smoke test runs SmallCNN for two epochs. It succeeds when these files exist:
 
 ```text
 outputs\smoke\best.pt
@@ -123,7 +125,7 @@ outputs\smoke\summary.json
 outputs\smoke\training_curves.png
 ```
 
-## 6. Chạy full study
+## 6. Run the full study
 
 NVIDIA:
 
@@ -146,18 +148,19 @@ powershell -ExecutionPolicy Bypass -File scripts\run_windows.ps1 `
   -Workers 4
 ```
 
-Nếu bị lỗi DataLoader trên Windows, chạy lại với:
+If a DataLoader error occurs on Windows, rerun with:
 
 ```powershell
 -Workers 0
 ```
 
-Nếu hết GPU memory, giảm `-BatchSize` xuống 16 hoặc 8.
+If GPU memory runs out, reduce `-BatchSize` to 16 or 8.
 
-Để tiếp tục một study bị ngắt:
+To continue an interrupted study:
 
-Chỉ các run có `complete.json` hợp lệ được bỏ qua. Chuyển run dở dang sang
-thư mục backup trước khi chạy lại; run đó sẽ train lại từ đầu, không resume epoch.
+Only runs with a valid `complete.json` are skipped. Move incomplete runs to a
+backup directory before rerunning; those runs train again from the beginning,
+rather than resuming an epoch.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\run_windows.ps1 `
@@ -167,10 +170,10 @@ powershell -ExecutionPolicy Bypass -File scripts\run_windows.ps1 `
   -SkipExisting
 ```
 
-## 7. Kiểm tra đúng số ảnh target nếu cần
+## 7. Check the exact target image count if needed
 
-Con số không bắt buộc. Tuy nhiên, nếu muốn script dừng khi target không đúng 5
-ảnh/lớp:
+There is no mandatory count. However, to make the script stop if the target
+does not contain exactly 5 images per class:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\run_windows.ps1 `
@@ -179,9 +182,9 @@ powershell -ExecutionPolicy Bypass -File scripts\run_windows.ps1 `
   -SmokeOnly
 ```
 
-## 8. Kết quả
+## 8. Results
 
-Sau full study:
+After the full study:
 
 ```text
 outputs\cross_domain_runs.csv
@@ -192,11 +195,11 @@ outputs\final\<model>\seed_<seed>\aid_evaluation\predictions.csv
 outputs\final\<model>\seed_<seed>\aid_evaluation\confusion_matrix.png
 ```
 
-`cross_domain_models.csv` là bảng chính để so sánh model.
+`cross_domain_models.csv` is the main table for comparing models.
 
-## 9. Inference trên Windows
+## 9. Inference on Windows
 
-Không cần activate `.venv`:
+There is no need to activate `.venv`:
 
 ```powershell
 .\.venv\Scripts\python.exe -m satdomain.infer `
@@ -206,12 +209,12 @@ Không cần activate `.venv`:
   --device cuda
 ```
 
-## 10. Kiểm tra CUDA
+## 10. Check CUDA
 
 ```powershell
 nvidia-smi
 .\.venv\Scripts\python.exe -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.version.cuda)"
 ```
 
-Nếu `nvidia-smi` hoạt động nhưng PyTorch trả `False`, cài lại PyTorch bằng index
-URL lấy từ bộ chọn chính thức.
+If `nvidia-smi` works but PyTorch returns `False`, reinstall PyTorch using the
+index URL from the official selector.

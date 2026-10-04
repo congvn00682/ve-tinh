@@ -1,0 +1,21 @@
+{
+  "raw_file_hashes_match_import": true,
+  "clean_summary_matches_submitted_run_and_class_tables": true,
+  "clean_ece_recomputed": false,
+  "degraded_prediction_rows": 4320,
+  "degraded_runs": 24,
+  "samples_per_run": 180,
+  "samples_per_class_per_run": 20,
+  "filename_label_sets_match_within_each_condition": true,
+  "bright_lowres_filename_label_overlap": 0,
+  "clean_target_manifest_hashes_as_reported": [
+    "c71a5411bf4bd3ce22f53ec1d6594180279aaaf76e3bff776fa9b3c55fa8c599"
+  ],
+  "clean_checkpoint_hash_count_as_reported": 12,
+  "image_content_verified": false,
+  "checkpoint_files_verified": false,
+  "paired_clean_degraded_comparison_verified": false,
+  "drop_metrics_computed": false,
+  "uncertainty": "Sample standard deviation over three runs, not a confidence interval.",
+  "note": "Rows repeat image identities over training seeds. No image independence is inferred from row count."
+}

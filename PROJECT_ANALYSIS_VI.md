@@ -1,43 +1,46 @@
-**Phân tích dự án Satellite Image Classification across Different Domains**
+**Analysis of the Satellite Image Classification across Different Domains project**
 
-Cập nhật theo code và lịch sử trao đổi ngày **27/09/2026**. Đây là bản hướng dẫn
-tự học và bàn giao; khi code thay đổi, cần đối chiếu lại. Xem prompt dùng lại tại
-[REUSABLE_PROJECT_PROMPT.md](REUSABLE_PROJECT_PROMPT.md).
+Updated against the code and conversation history on **27/09/2026**. This is a
+self-study and handover guide; recheck it when the code changes. See the reusable
+prompt at [REUSABLE_PROJECT_PROMPT.md](REUSABLE_PROJECT_PROMPT.md).
 
-**1. Dự án đang giải quyết bài toán gì? — RẤT QUAN TRỌNG**
+**1. What problem does the project solve? — VERY IMPORTANT**
 
-Đầu vào là một ảnh RGB chụp từ trên cao. Đầu ra là một trong chín nhãn cảnh:
-sân bay, sân bóng chày, bãi biển, cầu, nhà thờ, khu thương mại, khu dân cư dày đặc,
-sa mạc hoặc rừng. Nhãn mô tả **toàn cảnh của ảnh**. Model không đánh dấu vị trí
-từng vật thể và không phân loại từng pixel.
+The input is an overhead RGB image. The output is one of nine scene labels:
+airport, baseball diamond, beach, bridge, church, commercial area, dense
+residential area, desert, or forest. The label describes **the whole image
+scene**. The model does not locate individual objects or classify individual pixels.
 
-Trọng tâm nghiên cứu là **khả năng tổng quát hóa khi đổi nguồn dữ liệu**:
-train trên source hiện có, test trên AID. Theo phạm vi đã chốt, báo cáo chính
-chỉ có cross-domain, không có same-domain test và không đo same-domain/cross-domain gap.
+The research focuses on **generalization across data sources**: training on the
+existing source and testing on AID. Under the agreed scope, the main report
+contains only cross-domain results, with no same-domain test and no measurement
+of a same-domain/cross-domain gap.
 
-Phần mở rộng `weather_robust` thử giữ khả năng phân loại cảnh khi ảnh bị mây/sương,
-thay đổi ánh sáng, mất độ nét hoặc nhiễu. Đây chưa phải model nhận diện bão,
-phân loại thời tiết hoặc đánh giá thiệt hại sau thiên tai.
+The `weather_robust` extension attempts to retain scene classification under
+clouds/haze, illumination changes, loss of sharpness, or noise. It is not yet a
+model for storm recognition, weather classification, or post-disaster damage assessment.
 
-| Khái niệm | Ý nghĩa trong dự án |
+| Concept | Meaning in the project |
 |---|---|
-| Class / lớp | Nội dung cần dự đoán, ví dụ `forest` |
-| Domain / miền | Nguồn hoặc phân phối dữ liệu, ví dụ source và AID |
-| Architecture | Cấu trúc mạng, ví dụ ResNet18 |
-| Pretraining | Trọng số học từ dữ liệu khác trước khi học chín lớp này |
-| Checkpoint | Trọng số cùng thông tin để dựng lại model của một run |
-| Robustness | Mức ổn định khi ảnh đầu vào bị biến đổi |
-| Generalization | Khả năng hoạt động trên dữ liệu chưa dùng để học/chọn model |
+| Class | Content to predict, such as `forest` |
+| Domain | Data source or distribution, such as source and AID |
+| Architecture | Network structure, such as ResNet18 |
+| Pretraining | Weights learned from other data before learning these nine classes |
+| Checkpoint | Weights and information to reconstruct a run's model |
+| Robustness | Stability when input images are transformed |
+| Generalization | Ability to work on data not used for learning/model selection |
 
-Một ảnh vẫn mang nhãn `forest` sau biến đổi độ sáng, miễn là cảnh còn có ý nghĩa.
-Không thêm nhãn `storm` vào cùng danh sách chín lớp chỉ vì muốn nghiên cứu thời tiết.
+An image retains the `forest` label after a brightness change, provided its
+scene remains meaningful. Do not add `storm` to the same nine-class label list
+simply because weather is being studied.
 
-**2. Dữ liệu thực tế và những gì còn chưa biết — RẤT QUAN TRỌNG**
+**2. Actual data and remaining unknowns — VERY IMPORTANT**
 
-Đã kiểm kê lại: chín folder source ở gốc repo, mỗi folder 100 ảnh, tổng 900 ảnh.
-Hai lớp `airplane` và `basketball_court` đã bị loại theo yêu cầu trước đó.
+The inventory was checked again: nine source directories in `data/source_subset/`,
+100 images per directory, totaling 900 images.
+The `airplane` and `basketball_court` classes were removed as previously requested.
 
-| Chỉ số nhãn | Folder source | Tên tương ứng thường gặp trong AID |
+| Label index | Source directory | Common corresponding AID name |
 |---:|---|---|
 | 0 | `airport` | Airport |
 | 1 | `baseball_diamond` | BaseballField |
@@ -49,320 +52,357 @@ Hai lớp `airplane` và `basketball_court` đã bị loại theo yêu cầu tr�
 | 7 | `desert` | Desert |
 | 8 | `forest` | Forest |
 
-Thứ tự này nằm trong [constants.py](src/satdomain/constants.py). Đổi thứ tự mà
-không cập nhật checkpoint/manifest sẽ làm sai ý nghĩa đầu ra, kể cả khi code chạy được.
+This order is defined in [constants.py](src/satdomain/constants.py). Changing it
+without updating checkpoints/manifests corrupts output meanings even if the
+code still runs.
 
-Source giống một subset NWPU-RESISC45 về tên lớp và đặc điểm đã kiểm kê, nhưng
-chưa có tài liệu xác nhận nguồn. Trong báo cáo vẫn gọi là `source_subset` cho
-đến khi bổ sung provenance. Chưa có metadata địa lý, ngày chụp, mùa hoặc sensor.
+On 04/10/2026, the user confirmed the source as a NWPU-RESISC45 subset from
+[blanchon/RESISC45](https://huggingface.co/datasets/blanchon/RESISC45), and the
+target from [blanchon/AID](https://huggingface.co/datasets/blanchon/AID).
+Both dataset pages were checked; individual local/Windows images had not yet
+been compared with Hugging Face images, nor had the download revision and
+subset selection procedure been identified.
+Code/directories still call the source `source_subset`; reports may state
+“NWPU-RESISC45 subset, origin confirmed by the user.” Geographic, capture-date,
+seasonal, or sensor metadata is unavailable for individual experiment images.
 
-Theo thông tin bạn cung cấp, AID đã test trên Windows có **20 ảnh/lớp = 180 ảnh**.
-Code cho phép số ảnh khác hoặc lệch giữa các lớp, nhưng yêu cầu đủ chín lớp.
-Không mặc định rằng máy Mac này có toàn bộ AID, checkpoint hoặc output từ Windows.
+Audit update on 04/10/2026: SHA-256 of 900 local source images matches the
+RESISC45 mirror's LFS metadata at the pinned revision. [DATA.md](DATA.md) records
+official URLs, versions, splits, preprocessing, a frozen manifest, and a ZIP for
+reconstructing the current source. This does not confirm source manifests of
+Windows runs. Three test directories have been provided:
+`data/aid_subsets/{clean,bright,lowres}`, 180 images each. The reconstructed clean
+manifest matches the hash of all 12 runs; bright/lowres filenames/labels match
+the CSVs. Manifests, ZIPs, and a restore script are available; checkpoints,
+processing code, and original-image mappings across the three conditions are
+still missing.
 
-**3. Bản đồ thư mục toàn dự án**
+According to your information, AID tested on Windows had **20 images per class =
+180 images**. Code supports other counts or unequal class sizes but requires
+all nine classes. Do not assume this Mac has the full AID dataset, checkpoints,
+or outputs from Windows.
+
+**3. Directory map of the entire project**
 
 ```text
 ve-tinh/
-├── airport/ ... forest/          9 folder ảnh source, 100 ảnh/folder
-├── src/satdomain/                Package Python thực hiện nghiên cứu
-│   ├── __init__.py               Khởi tạo package
-│   ├── constants.py              Nhãn và thông số normalization
-│   ├── data.py                   Đọc ảnh, transforms, source split
-│   ├── models.py                 SmallCNN và factory tạo 4 model
-│   ├── train.py                  Train development/final, chọn và lưu weights
-│   ├── evaluate.py               Đánh giá một checkpoint trên manifest
+├── data/source_subset/           9 source image directories, 100 images per directory
+│   └── airport/ ... forest/
+├── src/satdomain/                Python package implementing the study
+│   ├── __init__.py               Package initialization
+│   ├── constants.py              Labels and normalization parameters
+│   ├── data.py                   Image loading, transforms, source split
+│   ├── models.py                 SmallCNN and factory for 4 models
+│   ├── train.py                  Development/final training, weight selection and saving
+│   ├── evaluate.py               Evaluate one checkpoint on a manifest
 │   ├── metrics.py                Accuracy, F1, confusion matrix, ECE
-│   ├── infer.py                  Dự đoán top-k cho một ảnh
-│   ├── robustness.py             Bốn phép suy giảm mô phỏng
-│   ├── artifacts.py              Hash, provenance, snapshot, complete marker
-│   ├── reports.py                Xuất bảng và hình từ kết quả đã lưu
-│   └── runtime.py                Seed, chọn device, ghi JSON
+│   ├── infer.py                  Top-k prediction for one image
+│   ├── robustness.py             Four simulated degradations
+│   ├── artifacts.py              Hashes, provenance, snapshots, completion marker
+│   ├── reports.py                Export tables and figures from saved results
+│   └── runtime.py                Seeds, device selection, JSON writing
 ├── scripts/
-│   ├── setup_windows.ps1         Tạo venv, cài dependencies trên Windows
-│   ├── run_windows.ps1           Wrapper chuẩn bị data, train/test/tổng hợp
-│   ├── prepare_manifests.py      Kiểm kê, ánh xạ nhãn, tạo fold và manifest
-│   ├── run_study.py              Điều phối development → final → AID
-│   ├── aggregate_results.py      Tổng hợp model/seed và từng lớp
-│   └── evaluate_robustness.py     Test 13 điều kiện cho một checkpoint
-├── configs/experiment.json       Mô tả cấu hình nghiên cứu, chưa là config runtime
-├── research/methodology.md       Protocol và phạm vi kết luận
+│   ├── setup_windows.ps1         Create a venv, install dependencies on Windows
+│   ├── run_windows.ps1           Wrapper for data preparation, training/testing/aggregation
+│   ├── prepare_manifests.py      Inventory, label mapping, fold and manifest generation
+│   ├── run_study.py              Coordinate development → final → AID
+│   ├── aggregate_results.py      Aggregate models/seeds and per-class results
+│   └── evaluate_robustness.py     Test 13 conditions for one checkpoint
+├── configs/experiment.json       Study configuration description, not yet runtime configuration
+├── research/methodology.md       Protocol and scope of conclusions
 ├── tests/
-│   ├── test_research_artifacts.py Kiểm tra integrity và xuất bảng
-│   └── test_robustness.py         Kiểm tra biến đổi và phép so sánh
-├── data/manifests/               CSV/JSON sinh ra khi chuẩn bị dữ liệu
-├── outputs/ hoặc đường dẫn khác  Output trên máy chạy; không mặc định đã tồn tại
-├── pyproject.toml                Dependencies, package và CLI entry points
-├── .gitignore                    Loại weights/output/cache khỏi Git
-├── .orca/                        File đính kèm trao đổi; không phải nguồn train
-└── *.md                          Tài liệu sử dụng và phân tích
+│   ├── test_research_artifacts.py Integrity and table export checks
+│   └── test_robustness.py         Transformation and comparison checks
+├── data/manifests/               CSV/JSON generated during data preparation
+├── outputs/ or another path      Outputs on the execution machine; not assumed to exist
+├── pyproject.toml                Dependencies, package, and CLI entry points
+├── .gitignore                    Exclude weights/outputs/cache from Git
+├── .orca/                        Conversation attachments; not the training source
+└── *.md                          Usage and analysis documentation
 ```
 
-`data/manifests/`, `outputs/`, `runs/` và checkpoint `.pt/.pth/.ckpt` bị Git bỏ qua
-theo `.gitignore`. Vì vậy clone/pull code không đồng nghĩa đã tải weights hoặc kết quả.
-`.git/` lưu lịch sử mã nguồn; `.venv/` nếu có là môi trường Python, không phải dữ liệu nghiên cứu.
+`data/manifests/`, `outputs/`, `runs/`, and `.pt/.pth/.ckpt` checkpoints are ignored
+by Git according to `.gitignore`. Therefore, cloning/pulling code does not mean
+weights or results have been downloaded. `.git/` stores source history; `.venv/`,
+if present, is a Python environment, not research data.
 
-| Tài liệu | Đọc khi nào |
+| Document | When to read it |
 |---|---|
-| [README.md](README.md) | Muốn nhìn toàn bộ thao tác chính |
-| [WINDOWS_GUIDELINE.md](WINDOWS_GUIDELINE.md) | Cài và chạy trên Windows CPU/CUDA |
-| [RUN_ON_ANOTHER_MACHINE_GUIDELINE.md](RUN_ON_ANOTHER_MACHINE_GUIDELINE.md) | Chuyển dự án sang máy khác |
-| [RESEARCH_ARTIFACTS_GUIDELINE.md](RESEARCH_ARTIFACTS_GUIDELINE.md) | Tìm manifest, checkpoint, F1 và biểu đồ |
-| [ROBUSTNESS_GUIDELINE.md](ROBUSTNESS_GUIDELINE.md) | Chạy baseline/robust và đọc giới hạn mô phỏng |
-| [research/methodology.md](research/methodology.md) | Viết phương pháp và xác định kết luận hợp lệ |
+| [README.md](README.md) | For an overview of the main operations |
+| [WINDOWS_GUIDELINE.md](WINDOWS_GUIDELINE.md) | To install and run on Windows CPU/CUDA |
+| [RUN_ON_ANOTHER_MACHINE_GUIDELINE.md](RUN_ON_ANOTHER_MACHINE_GUIDELINE.md) | To transfer the project to another machine |
+| [RESEARCH_ARTIFACTS_GUIDELINE.md](RESEARCH_ARTIFACTS_GUIDELINE.md) | To find manifests, checkpoints, F1, and plots |
+| [ROBUSTNESS_GUIDELINE.md](ROBUSTNESS_GUIDELINE.md) | To run baseline/robust and understand simulation limitations |
+| [research/methodology.md](research/methodology.md) | To write methods and determine valid conclusions |
 
-**4. Luồng thực thi từ ảnh đến kết quả — RẤT QUAN TRỌNG**
+**4. Execution flow from images to results — VERY IMPORTANT**
 
 ```text
 Source folders + AID folders
         ↓ prepare_manifests.py
 source.csv + aid_test.csv + summary.json
-        ↓ run_study.py — giai đoạn 1
-Source train/validation → chọn epoch → development/.../best.pt
-        ↓ giai đoạn 2: tạo lại model
-Toàn bộ source → train với số epoch đã chọn → final/.../best.pt
-        ↓ giai đoạn 3, sau khi mọi model đã train xong
+        ↓ run_study.py — stage 1
+Source training/validation → select epoch → development/.../best.pt
+        ↓ stage 2: recreate the model
+Entire source → train for the selected epoch count → final/.../best.pt
+        ↓ stage 3, after every model finishes training
 AID → evaluate.py → predictions + metrics + confusion matrix
         ↓ aggregate_results.py
-Bảng so sánh model/seed và F1 từng lớp
+Model/seed comparison table and per-class F1
 ```
 
-`run_windows.ps1` gọi các script tương ứng và tự tổng hợp kết quả. Nếu chạy
-`run_study.py` trực tiếp thì cần gọi `aggregate_results.py` riêng.
+`run_windows.ps1` calls the corresponding scripts and automatically aggregates
+results. When running `run_study.py` directly, call `aggregate_results.py` separately.
 
-Nhánh bổ sung: `evaluate_robustness.py` lấy một final checkpoint, test ảnh AID sạch
-và các bản biến đổi. Nhánh sử dụng thực tế: `infer.py` lấy checkpoint và một ảnh
-mới, xuất top-k nhãn/confidence.
+Additional branch: `evaluate_robustness.py` takes a final checkpoint and tests
+clean AID images and transformed versions. Practical-use branch: `infer.py`
+takes a checkpoint and a new image and returns top-k labels/confidence.
 
-**5. Manifest và chia dữ liệu — RẤT QUAN TRỌNG**
+**5. Manifests and data splits — VERY IMPORTANT**
 
-Đọc [prepare_manifests.py](scripts/prepare_manifests.py), nhất là `collect_domain()`.
-Manifest là danh sách đóng băng ảnh được dùng, gồm:
+Read [prepare_manifests.py](scripts/prepare_manifests.py), especially `collect_domain()`.
+A manifest is a frozen list of the images used, containing:
 
-| Cột | Ý nghĩa |
+| Column | Meaning |
 |---|---|
-| `path` | Đường dẫn tương đối tính từ data root |
-| `label` | Tên lớp chuẩn |
-| `class_index` | Số nguyên 0–8, thống nhất với model |
-| `fold` | Fold source hoặc `-1` đối với target |
+| `path` | Relative path from the data root |
+| `label` | Canonical class name |
+| `class_index` | Integer 0–8, consistent with the model |
+| `fold` | Source fold or `-1` for the target |
 | `domain` | `source` / `target` |
-| `sha256` | Dấu vân tay nội dung file |
+| `sha256` | File content fingerprint |
 
-Script ánh xạ tên folder AID sang tên chuẩn, kiểm tra số lượng, phát hiện trùng
-nội dung file trong mỗi domain và giữa source/target. Tuy nhiên, **hash không phát
-hiện ảnh gần trùng**, ảnh cùng địa điểm chụp khác lúc, hoặc cùng ảnh được nén lại.
-Script chuẩn bị manifest không giải mã toàn bộ ảnh để xác minh nhãn/nội dung ảnh.
+The script maps AID directory names to canonical names, checks counts, and
+detects duplicate file contents within domains and between source/target.
+However, **hashes do not detect near-duplicate images**, images of the same
+location taken at different times, or recompressed versions of the same image.
+The manifest preparation script does not fully decode images to verify labels/content.
 
-Source được phân tầng theo lớp vào năm fold bằng split seed mặc định `20260926`.
-Với 100 ảnh/lớp, mỗi fold có 20 ảnh/lớp. Một run development giữ một fold để
-validation: 720 ảnh train, 180 ảnh validation.
+The source is stratified by class into five folds using default split seed
+`20260926`. With 100 images per class, each fold has 20 images per class.
+A development run holds out one fold for validation: 720 training images and
+180 validation images.
 
-Điểm cần hiểu đúng: mặc định seed training `[13, 37, 73]` lần lượt dùng fold
-`0, 1, 2`. Đây **không phải full 5-fold cross-validation**. Dao động giữa các run
-bao gồm cả ảnh hưởng của khởi tạo và thay đổi validation split. Khi so baseline
-và robust, giữ nguyên cặp seed/fold. Muốn nghiên cứu riêng ảnh hưởng của seed,
-cần thiết kế thí nghiệm cố định fold.
+A key distinction: default training seeds `[13, 37, 73]` use folds `0, 1, 2`
+respectively. This is **not full 5-fold cross-validation**. Between-run variation
+includes initialization effects and changes in validation splits. When comparing
+baseline and robust, preserve seed/fold pairs. To study seed effects alone,
+design an experiment with a fixed fold.
 
-**6. Preprocessing và DataLoader — RẤT QUAN TRỌNG**
+**6. Preprocessing and DataLoader — VERY IMPORTANT**
 
-Đọc [data.py](src/satdomain/data.py): `ManifestDataset`, `build_transforms()` và
+Read [data.py](src/satdomain/data.py): `ManifestDataset`, `build_transforms()`, and
 `source_train_validation_split()`.
 
-| Giai đoạn | Xử lý ảnh |
+| Stage | Image processing |
 |---|---|
-| Train baseline | RGB → Resize cạnh ngắn 256 → RandomResizedCrop 224, scale 0,8–1,0 → flip ngang/dọc → xoay bội 90° → tensor → normalization |
-| Train robust | Như baseline, thêm `RandomDegradation` sau crop/flip/rotate và trước tensor |
-| Validation/test sạch | RGB → Resize cạnh ngắn 256 → CenterCrop 224 → tensor → normalization |
-| Validation/test suy giảm | Biến đổi ảnh RGB gốc trước Resize/CenterCrop, sau đó theo pipeline test |
+| Baseline training | RGB → Resize shorter edge to 256 → RandomResizedCrop 224, scale 0.8–1.0 → horizontal/vertical flip → rotation by multiples of 90° → tensor → normalization |
+| Robust training | Same as baseline, with `RandomDegradation` after crop/flip/rotation and before tensor conversion |
+| Clean validation/test | RGB → Resize shorter edge to 256 → CenterCrop 224 → tensor → normalization |
+| Degraded validation/test | Transform the original RGB image before Resize/CenterCrop, then follow the test pipeline |
 
-Tensor đưa vào mạng có dạng `[batch, 3, 224, 224]`. Cả bốn model dùng mean/std
-ImageNet khai báo trong `constants.py`; không ước lượng normalization từ AID.
+Network input tensors have shape `[batch, 3, 224, 224]`. All four models use the
+ImageNet mean/std defined in `constants.py`; normalization is not estimated from AID.
 
-Crop có thể loại bỏ nội dung sát mép; ảnh hưởng này cần nghiên cứu nếu định thay
-preprocessing. Giữ cùng quy tắc khi so sánh model. Augmentation tạo mẫu biến đổi
-trong lúc nạp dữ liệu, không sửa file ảnh gốc và không tạo thêm mẫu độc lập.
+Cropping can remove content near image edges; study this effect if changing
+preprocessing. Keep the same rules when comparing models. Augmentation creates
+transformed samples during loading, without modifying original image files or
+creating additional independent samples.
 
-`DataLoader` gom ảnh thành batch và dùng worker để nạp ảnh. Mặc định batch 32,
-workers 4. Batch size, worker count và GPU memory là các khái niệm khác nhau.
+`DataLoader` groups images into batches and uses workers to load them. Defaults
+are batch size 32 and workers 4. Batch size, worker count, and GPU memory are
+different concepts.
 
-**7. Bốn model và vai trò của từng model — RẤT QUAN TRỌNG**
+**7. Four models and their roles — VERY IMPORTANT**
 
-Đọc [models.py](src/satdomain/models.py). Model chỉ tạo logits: chín điểm số chưa
-chuẩn hóa. Softmax biến logits thành confidence ở bước đánh giá/inference.
+Read [models.py](src/satdomain/models.py). Models only produce logits: nine
+unnormalized scores. Softmax turns logits into confidence during evaluation/inference.
 
-| Tên CLI | Cách khởi tạo | Vai trò nghiên cứu |
+| CLI name | Initialization | Research role |
 |---|---|---|
-| `small_cnn` | Ngẫu nhiên | Baseline CNN tự xây, học từ source |
-| `resnet18_scratch` | Ngẫu nhiên | CNN tiêu chuẩn để làm đối chứng |
-| `resnet18_pretrained` | ImageNet weights qua torchvision | Đo ích lợi pretraining trên cùng kiến trúc ResNet18 |
-| `deit_tiny_pretrained` | Pretrained qua timm | Đại diện transformer nhỏ |
+| `small_cnn` | Random | Custom CNN baseline, learning from the source |
+| `resnet18_scratch` | Random | Standard CNN control |
+| `resnet18_pretrained` | ImageNet weights through torchvision | Measure pretraining benefits with the same ResNet18 architecture |
+| `deit_tiny_pretrained` | Pretrained through timm | Small transformer representative |
 
-**SmallCNN: hiểu từng khối trước khi học mạng phức tạp.**
+**SmallCNN: understand each block before studying complex networks.**
 
 ```text
-RGB 3 kênh
+3-channel RGB
  → Conv 3→32  + BatchNorm + ReLU + MaxPool
  → Conv 32→64 + BatchNorm + ReLU + MaxPool
  → Conv 64→128 + BatchNorm + ReLU + MaxPool
  → Conv 128→256 + BatchNorm + ReLU + MaxPool
- → AdaptiveAvgPool 1×1 → Flatten → Dropout 0,30 → Linear 256→9
+ → AdaptiveAvgPool 1×1 → Flatten → Dropout 0.30 → Linear 256→9
 ```
 
-Conv dùng kernel 3×3, padding 1, không bias. Với ảnh 224×224, bốn lần pooling
-giảm kích thước không gian còn 14×14 trước global pooling. Conv học đặc trưng;
-pooling thu gọn không gian; classifier đổi đặc trưng thành điểm số chín lớp.
-Độ đơn giản không đảm bảo generalization tốt hay xấu: phải dựa vào kết quả.
+Convolutions use 3×3 kernels, padding 1, and no bias. For a 224×224 image, four
+pooling operations reduce spatial size to 14×14 before global pooling.
+Convolutions learn features; pooling reduces spatial dimensions; the classifier
+converts features into nine-class scores. Simplicity guarantees neither good
+nor poor generalization: conclusions must rely on results.
 
-**ResNet18 scratch và pretrained: cặp đối chứng quan trọng nhất.**
+**Scratch and pretrained ResNet18: the most important control pair.**
 
-Cả hai gọi `torchvision.models.resnet18()` và thay `fc` bằng Linear có chín đầu ra.
-Khác biệt chính là scratch dùng `weights=None`, pretrained dùng
-`ResNet18_Weights.DEFAULT`. Residual connections là ý tưởng nền tảng của ResNet;
-đọc [bài báo ResNet](https://arxiv.org/abs/1512.03385) để hiểu vì sao mạng học phần
-hiệu chỉnh qua đường nối tắt.
+Both call `torchvision.models.resnet18()` and replace `fc` with a Linear layer
+having nine outputs. The main difference is that scratch uses `weights=None`,
+while pretrained uses `ResNet18_Weights.DEFAULT`. Residual connections are the
+foundation of ResNet; read the [ResNet paper](https://arxiv.org/abs/1512.03385)
+to understand why the network learns a correction through shortcut connections.
 
-Trong code hiện tại, toàn bộ model pretrained được fine-tune ngay từ đầu;
-**chưa khóa backbone, chưa fine-tune hai giai đoạn, chưa chia learning rate theo
-backbone/classifier**. Khuyến nghị trước đây về các kỹ thuật đó chưa phải tính
-năng đã triển khai. Đọc thêm sự khác nhau giữa fine-tuning toàn mạng và dùng
-backbone làm feature extractor tại [hướng dẫn PyTorch](https://docs.pytorch.org/tutorials/beginner/transfer_learning_tutorial.html).
+In the current code, the entire pretrained model is fine-tuned from the start;
+**the backbone is not frozen, there is no two-stage fine-tuning, and learning
+rates are not separated for backbone/classifier**. Earlier recommendations for
+these techniques are not implemented features. Read about the difference between
+full-network fine-tuning and using a backbone as a feature extractor in the
+[PyTorch tutorial](https://docs.pytorch.org/tutorials/beginner/transfer_learning_tutorial.html).
 
-**DeiT-Tiny: đại diện transformer.**
+**DeiT-Tiny: a transformer representative.**
 
-Factory gọi `timm.create_model("deit_tiny_patch16_224.fb_in1k", pretrained=..., num_classes=9)`.
-Tên cấu hình thể hiện patch 16 và input 224. Cần học patch embedding, attention
-và classifier. [Bài báo DeiT](https://arxiv.org/abs/2012.12877) trình bày hướng
-huấn luyện transformer tiết kiệm dữ liệu và distillation; **project này không
-cài teacher/student hoặc distillation loss**, mà fine-tune model có sẵn.
+The factory calls `timm.create_model("deit_tiny_patch16_224.fb_in1k", pretrained=..., num_classes=9)`.
+The configuration name specifies patch size 16 and input size 224. Study patch
+embedding, attention, and the classifier. The [DeiT paper](https://arxiv.org/abs/2012.12877)
+presents data-efficient transformer training and distillation; **this project
+does not implement a teacher/student or distillation loss**, but fine-tunes an
+existing model.
 
-So SmallCNN với DeiT thay đổi đồng thời kiến trúc, năng lực biểu diễn và pretraining.
-Không dùng riêng cặp đó để quy toàn bộ chênh lệch cho pretraining. Cũng không mặc
-định pretrained/transformer luôn thắng trên mọi domain.
+Comparing SmallCNN with DeiT changes architecture, representation capacity,
+and pretraining simultaneously. Do not use that pair alone to attribute the
+entire difference to pretraining. Do not assume pretrained models/transformers
+always win on every domain either.
 
-**8. Training và chọn checkpoint — RẤT QUAN TRỌNG**
+**8. Training and checkpoint selection — VERY IMPORTANT**
 
-Đọc [train.py](src/satdomain/train.py): `run_epoch()`, `checkpoint_payload()` và `main()`.
+Read [train.py](src/satdomain/train.py): `run_epoch()`, `checkpoint_payload()`, and `main()`.
 
-Một batch training: nạp ảnh → forward → CrossEntropyLoss → backward → optimizer
-update. CrossEntropyLoss nhận logits trực tiếp; không thêm softmax trước loss.
-Khi validation/test, `model.eval()` và no-grad tắt cập nhật trọng số, đồng thời
-thay hành vi của Dropout/BatchNorm sang chế độ đánh giá.
+One training batch: load images → forward → CrossEntropyLoss → backward → optimizer
+update. CrossEntropyLoss takes logits directly; do not add softmax before the
+loss. During validation/testing, `model.eval()` and no-grad disable weight
+updates and switch Dropout/BatchNorm behavior to evaluation mode.
 
-| Tham số mặc định | Giá trị/code hiện tại |
+| Default parameter | Current value/code |
 |---|---|
 | Loss | CrossEntropyLoss |
-| Optimizer | AdamW cho toàn bộ tham số |
+| Optimizer | AdamW for all parameters |
 | Learning rate | `3e-4` |
 | Weight decay | `1e-4` |
-| Scheduler | CosineAnnealingLR, `T_max = số epoch của run` |
-| Development tối đa | 50 epoch |
-| Patience | 8 epoch không tăng điểm chọn |
+| Scheduler | CosineAnnealingLR, `T_max = epoch count of the run` |
+| Maximum development length | 50 epochs |
+| Patience | 8 epochs without selection-score improvement |
 | Batch / image size | 32 / 224 |
-| Training seeds mặc định | 13, 37, 73 |
-| AMP | Chỉ bật khi có cờ và device là CUDA |
+| Default training seeds | 13, 37, 73 |
+| AMP | Enabled only with the flag and a CUDA device |
 
-Giai đoạn development chọn epoch bằng validation. Giai đoạn final **tạo lại model**
-và train toàn bộ source theo số epoch đã chọn; không tiếp tục từ weights development.
-Với pretrained, tạo lại model nghĩa là quay về pretrained initialization và head
-mới; với scratch là khởi tạo ngẫu nhiên theo seed.
+Development selects epochs through validation. Final training **recreates the
+model** and trains on the entire source for the selected epoch count; it does
+not continue from development weights. For pretrained models, recreation means
+returning to pretrained initialization and a new head; scratch models use
+random initialization according to the seed.
 
-`best.pt` có hai ý nghĩa cần phân biệt:
+`best.pt` has two distinct meanings:
 
-- Development: weights tại epoch có điểm validation tốt nhất.
-- Final: weights ở epoch cuối của số epoch đã khóa; file được ghi lại mỗi epoch.
-  Không có AID validation để chọn “best target checkpoint”.
+- Development: weights at the epoch with the best validation score.
+- Final: weights at the last epoch of the fixed epoch count; the file is rewritten
+  each epoch. There is no AID validation to select a “best target checkpoint.”
 
-Scheduler final dùng `T_max` mới bằng số epoch final, nên đường learning rate
-không nhất thiết giống đoạn đầu của development. Đây là lựa chọn refit hiện tại;
-nếu nghiên cứu scheduler, cần lưu ý sự khác biệt này.
+The final scheduler uses a new `T_max` equal to the final epoch count, so its
+learning-rate trajectory need not match the initial development segment.
+This is the current refit choice; account for this difference when studying schedulers.
 
-Một profile mặc định: 4 model × 3 seed = 12 run development + 12 run final,
-tức **24 lượt train và 12 final checkpoint**. Chạy baseline và robust riêng
-thành hai study; không lấy kết quả tốt nhất từng model từ hai môi trường khác nhau.
+One default profile: 4 models × 3 seeds = 12 development runs + 12 final runs,
+i.e. **24 training runs and 12 final checkpoints**. Run baseline and robust as
+two separate studies; do not combine each model's best results from two different
+environments.
 
-**9. Robustness mới hoạt động thế nào? — RẤT QUAN TRỌNG**
+**9. How does the new robustness feature work? — VERY IMPORTANT**
 
-Đọc [robustness.py](src/satdomain/robustness.py), sau đó đọc nhánh robust trong
-`train.py` và [evaluate_robustness.py](scripts/evaluate_robustness.py).
+Read [robustness.py](src/satdomain/robustness.py), then the robust branch in
+`train.py` and [evaluate_robustness.py](scripts/evaluate_robustness.py).
 
-| Mã điều kiện | Phép biến đổi | Không thể suy ra trực tiếp |
+| Condition code | Transformation | What cannot be inferred directly |
 |---|---|---|
-| `cloud_haze` | Lớp phủ sáng có biến thiên không gian | Có bão, loại bão, lượng mưa hoặc tỷ lệ mây thật |
-| `illumination` | Đổi độ sáng/tương phản | Mùa hoặc giờ chụp |
-| `resolution` | Downsample, phóng lại và blur | Sensor hoặc GSD thực tế |
-| `sensor_noise` | Thêm Gaussian noise trên RGB | Danh tính sensor hay nhiễu radar SAR |
+| `cloud_haze` | Bright overlay with spatial variation | Storm presence/type, rainfall, or real cloud fraction |
+| `illumination` | Change brightness/contrast | Season or capture time |
+| `resolution` | Downsample, upscale, and blur | Actual sensor or GSD |
+| `sensor_noise` | Add Gaussian noise to RGB | Sensor identity or SAR radar noise |
 
-`RandomDegradation`: xác suất 50% không thêm suy giảm; 50% chọn đều một trong
-bốn loại, mức 1 hoặc 2. “Ảnh sạch” ở đây vẫn có crop/flip/rotate cơ bản.
+`RandomDegradation`: 50% probability of no additional degradation; in the remaining 50%,
+uniformly select one of four types and severity 1 or 2. “Clean images” here
+still receive basic crop/flip/rotation.
 
-Baseline chọn epoch bằng clean source-validation macro-F1. Robust chọn bằng:
+Baseline selects epochs by clean source-validation macro-F1. Robust selects by:
 
 ```text
-selection_score = (F1 sạch + F1 mây/sương + F1 ánh sáng
-                   + F1 độ phân giải + F1 nhiễu) / 5
+selection_score = (clean F1 + cloud/haze F1 + illumination F1
+                   + resolution F1 + noise F1) / 5
 ```
 
-Bốn phép biến đổi validation dùng mức 2 và seed 7919, cố định qua các epoch.
-Clean F1 và từng F1 biến đổi vẫn được lưu riêng. Mỗi điều kiện có trọng số 20%;
-điểm tổng cao hơn không đảm bảo F1 ảnh sạch cao hơn, nên phải đọc cả hai.
+The four validation transformations use severity 2 and seed 7919, fixed across
+epochs. Clean F1 and each transformed-condition F1 are still saved separately.
+Each condition has 20% weight; a higher overall score does not guarantee higher
+clean F1, so inspect both.
 
-Test robustness dùng cùng checkpoint trên clean + 4 loại × 3 mức = 13 lượt.
-Seed test mặc định 2026; RNG dựa trên hash ảnh, điều kiện, seed và version
-`optical-proxies-v1`. Do đó cùng ảnh/điều kiện có cùng biến đổi giữa các model.
-Mức 3 chưa dùng trong training/selection; đó là mức mạnh hơn, không phải một
-loại corruption hoàn toàn mới. Thông số mỗi mức nằm trực tiếp trong `degrade()`.
+Robustness testing uses the same checkpoint on clean + 4 types × 3 severities =
+13 passes. The default test seed is 2026; RNG depends on image hash, condition,
+seed, and version `optical-proxies-v1`. Thus, the same image/condition receives
+the same transformation across models. Severity 3 is not used in training/selection;
+it is stronger, not an entirely new corruption type. Parameters for each severity
+are defined directly in `degrade()`.
 
-Với 180 ảnh, 13 lượt tạo 2.340 dự đoán nhưng vẫn chỉ có **180 ảnh độc lập**.
-Baseline→robust thay cả augmentation và tiêu chí chọn checkpoint; muốn khẳng
-định riêng augmentation tạo ra lợi ích phải thêm ablation giữ nguyên tiêu chí chọn.
+With 180 images, 13 passes produce 2,340 predictions but still only **180
+independent images**. Baseline→robust changes both augmentation and checkpoint
+selection; claiming a benefit specifically from augmentation requires an
+ablation retaining the same selection criterion.
 
-Hướng dẫn vận hành và giới hạn: [ROBUSTNESS_GUIDELINE.md](ROBUSTNESS_GUIDELINE.md).
-Đối chiếu phạm vi với [nghiên cứu robustness trong remote sensing](https://arxiv.org/abs/2306.12111);
-các phép biến đổi hiện tại là protocol riêng, chưa tái lập benchmark của bài báo.
+Operating instructions and limitations: [ROBUSTNESS_GUIDELINE.md](ROBUSTNESS_GUIDELINE.md).
+Compare the scope with the [remote sensing robustness study](https://arxiv.org/abs/2306.12111);
+the current transformations constitute a separate protocol and have not reproduced
+the paper's benchmark.
 
-**10. Đọc metrics như thế nào? — RẤT QUAN TRỌNG**
+**10. How should metrics be read? — VERY IMPORTANT**
 
-Đọc [metrics.py](src/satdomain/metrics.py), hàm `classification_metrics()`.
+Read [metrics.py](src/satdomain/metrics.py), function `classification_metrics()`.
 
-| Metric | Câu hỏi nó trả lời |
+| Metric | Question it answers |
 |---|---|
-| Accuracy | Bao nhiêu phần trăm ảnh được đoán đúng? |
-| Precision của lớp | Trong những ảnh bị dự đoán là lớp đó, bao nhiêu ảnh đúng? |
-| Recall của lớp | Trong ảnh thật của lớp đó, model tìm đúng bao nhiêu? |
-| F1 của lớp | Precision và recall cân bằng ra sao? |
-| Macro-F1 | F1 trung bình ngang nhau giữa chín lớp |
-| Balanced accuracy | Recall trung bình ngang nhau giữa các lớp |
-| Confusion matrix | Những cặp lớp nào bị nhầm với nhau? |
-| ECE 15 bins | Confidence và tỷ lệ đúng quan sát được lệch nhau thế nào? |
+| Accuracy | What percentage of images was predicted correctly? |
+| Class precision | Of images predicted as that class, how many are correct? |
+| Class recall | Of actual images of that class, how many does the model recognize correctly? |
+| Class F1 | How are precision and recall balanced? |
+| Macro-F1 | Equally weighted mean F1 across nine classes |
+| Balanced accuracy | Equally weighted mean recall across classes |
+| Confusion matrix | Which class pairs are confused? |
+| ECE with 15 bins | How far does confidence differ from observed correctness rates? |
 
-Ví dụ để hiểu công thức, không phải kết quả thực nghiệm: nếu một lớp có 20 ảnh
-thật, nhận ra 15 ảnh và tổng cộng dự đoán 18 ảnh là lớp đó, recall = 15/20,
-precision = 15/18. F1 là trung bình điều hòa của hai giá trị. Macro-F1 là trung
-bình F1 từng lớp, không phải tính F1 từ macro precision và macro recall.
-Xem định nghĩa tại [tài liệu metrics của scikit-learn](https://scikit-learn.org/stable/modules/model_evaluation.html#classification-metrics).
+An example for understanding formulas, not an experimental result: if a class
+has 20 actual images, 15 are recognized, and 18 images in total are predicted
+as that class, recall = 15/20 and precision = 15/18. F1 is their harmonic mean.
+Macro-F1 is the mean of per-class F1, not F1 computed from macro precision and
+macro recall. See definitions in the [scikit-learn metrics documentation](https://scikit-learn.org/stable/modules/model_evaluation.html#classification-metrics).
 
-Ma trận trong project: hàng là nhãn thật, cột là nhãn dự đoán. Bản row-normalized
-giúp đọc tỷ lệ nhầm của mỗi lớp. Với 20 ảnh/lớp, một ảnh làm recall của lớp đó
-thay đổi 5 điểm phần trăm; trên 180 ảnh, một ảnh làm accuracy đổi khoảng 0,56 điểm.
+Project matrices use rows for true labels and columns for predicted labels.
+The row-normalized version makes each class's confusion rates easier to read.
+With 20 images per class, one image changes that class's recall by 5 percentage
+points; over 180 images, one image changes accuracy by approximately 0.56 points.
 
-Mean ± standard deviation trong bảng tổng hợp là dao động giữa run, không phải
-confidence interval. Chưa triển khai bootstrap confidence intervals hoặc kiểm
-định ý nghĩa thống kê. ECE đã có, nhưng chưa có fitting calibration temperature,
-NLL hoặc reliability diagram. `temperature=1.0` trong checkpoint không chứng
-minh model đã được calibration.
+Mean ± standard deviation in summary tables measures between-run variation,
+not a confidence interval. Bootstrap confidence intervals and statistical
+significance tests have not been implemented. ECE exists, but fitted temperature
+calibration, NLL, and reliability diagrams do not. `temperature=1.0` in a checkpoint
+does not prove the model has been calibrated.
 
-Robustness dùng `drop_pp = 100 × (metric_clean − metric_degraded)`. Đây là mức
-giảm do biến đổi ảnh trong cùng target set, **không phải domain gap source→target**.
-Mức giảm âm là có thể xảy ra và cần báo cáo trung thực.
+Robustness uses `drop_pp = 100 × (metric_clean − metric_degraded)`. This is the
+drop due to image transformation within the same target set, **not the
+source→target domain gap**. Negative drops are possible and must be reported honestly.
 
-**11. Checkpoint, kết quả và tái lập — RẤT QUAN TRỌNG**
+**11. Checkpoints, results, and reproducibility — VERY IMPORTANT**
 
-Đọc [artifacts.py](src/satdomain/artifacts.py) và [reports.py](src/satdomain/reports.py).
+Read [artifacts.py](src/satdomain/artifacts.py) and [reports.py](src/satdomain/reports.py).
 
 ```text
 <output-root>/
 ├── study.json
-├── manifests/{source.csv, aid_test.csv, generation_summary.json nếu có}
+├── manifests/{source.csv, aid_test.csv, generation_summary.json if available}
 ├── development/<model>/seed_<n>/
 │   ├── best.pt, run.json, summary.json, complete.json
 │   ├── source_manifest.csv, train_manifest.csv, validation_manifest.csv
@@ -380,121 +420,136 @@ Mức giảm âm là có thể xảy ra và cần báo cáo trung thực.
 └── per_class_runs.csv, per_class_models.csv
 ```
 
-Đây là cấu trúc được sinh khi chạy đủ các bước; output có thể nằm ở ổ D: trên
-Windows, không phải trong repo Mac. Các run cũ có thể thiếu những file provenance
-được bổ sung về sau.
+This structure is generated when all steps are run; outputs may be on the
+Windows D: drive rather than in the Mac repository. Older runs may lack
+provenance files added later.
 
-`best.pt` chứa state_dict, architecture, nhãn/thứ tự lớp, image size, mean/std,
-seed, epoch, training arguments, temperature và provenance. Metadata liên kết
-weights với manifest/hash/code/environment. `complete.json` ghi hash các artifact
-chính để kiểm tra run hoàn tất; không kiểm hash mọi biểu đồ xuất thêm.
+`best.pt` contains state_dict, architecture, labels/class order, image size,
+mean/std, seed, epoch, training arguments, temperature, and provenance. Metadata
+links weights with manifests/hashes/code/environment. `complete.json` records
+hashes of primary artifacts to verify completion; it does not hash every extra
+exported plot.
 
-`--skip-existing` chỉ bỏ qua run hoàn tất và hợp lệ; **không resume optimizer từ
-giữa một epoch/run**. Checkpoint chưa lưu optimizer/scheduler state để resume.
-Giữ output dở dang riêng nếu cần điều tra và dùng thư mục mới cho lần train mới.
+`--skip-existing` only skips complete and valid runs; it **does not resume the
+optimizer partway through an epoch/run**. Checkpoints do not yet save
+optimizer/scheduler states for resumption. Keep incomplete outputs separately
+for investigation and use a new directory for new training.
 
-`reports.py` có thể dựng lại hình từ `history.json` và `metrics.json`. Chỉ có CSV
-tổng hợp không đủ để khôi phục từng dự đoán, training curve, manifest hay weights.
+`reports.py` can regenerate figures from `history.json` and `metrics.json`.
+Aggregate CSVs alone cannot recover individual predictions, training curves,
+manifests, or weights.
 
-`evaluate_robustness.py` tạo output riêng gồm 13 thư mục điều kiện,
-`robustness.csv`, `summary.json` và `robustness_curves.png`. Chưa có script tự
-tổng hợp robustness trên mọi model/seed; cần chạy từng checkpoint và tổng hợp
-các bảng tương ứng, giữ nguyên protocol.
+`evaluate_robustness.py` creates separate output containing 13 condition
+directories, `robustness.csv`, `summary.json`, and `robustness_curves.png`.
+There is no script to automatically aggregate robustness across every
+model/seed yet; run each checkpoint and aggregate the corresponding tables
+while preserving the protocol.
 
-**12. Inference và giới hạn sử dụng**
+**12. Inference and usage limitations**
 
-Đọc [infer.py](src/satdomain/infer.py). Nó tạo lại kiến trúc với
-`load_pretrained=False`, nạp state_dict, chuyển sang eval, chuẩn hóa ảnh, tính
-softmax và xuất top-k. Không cần tải lại pretrained weights khi đã có checkpoint
-đầy đủ. Training pretrained lần đầu có thể cần Internet để lấy weights.
+Read [infer.py](src/satdomain/infer.py). It recreates the architecture with
+`load_pretrained=False`, loads state_dict, switches to evaluation mode,
+normalizes the image, computes softmax, and returns top-k results. Pretrained
+weights need not be downloaded again when a complete checkpoint is available.
+First-time pretrained training may need Internet access to obtain weights.
 
-Ảnh ngoài chín lớp vẫn bị ép vào một trong chín lớp: đây là closed-set classifier.
-Chưa có out-of-distribution detector, cloud mask hoặc cơ chế tự từ chối dự đoán.
-Confidence 94% không có nghĩa xác suất đúng trong mọi domain là 94%.
+Images outside the nine classes are still forced into one of them: this is a
+closed-set classifier. There is no out-of-distribution detector, cloud mask,
+or automatic prediction rejection mechanism. Confidence of 94% does not mean
+the probability of correctness is 94% in every domain.
 
-Preprocessing hiện dùng `build_transforms()` và constants của code đang chạy.
-Mặc dù checkpoint lưu normalization, loader hiện không tự khôi phục một pipeline
-normalization tùy ý từ metadata. Nếu đổi preprocessing về sau, phải đồng bộ
-train/evaluate/infer và kiểm tra tương thích checkpoint cũ.
+Preprocessing currently uses `build_transforms()` and constants from the running
+code. Although checkpoints store normalization, the loader does not automatically
+restore an arbitrary normalization pipeline from metadata. If preprocessing
+changes later, synchronize training/evaluation/inference and check compatibility
+with old checkpoints.
 
-**13. Các điểm dễ hiểu nhầm trong cấu hình và tái lập**
+**13. Common misunderstandings about configuration and reproducibility**
 
-| Điểm | Tình trạng thực tế và ảnh hưởng |
+| Item | Actual status and implications |
 |---|---|
-| `configs/experiment.json` | Chưa được script đọc làm config runtime. Sửa file này không tự đổi lệnh train. Giá trị thực đến từ CLI/defaults và được ghi vào run metadata. |
-| Nhãn lớp | Khai báo trong cả `constants.py` và `prepare_manifests.py`; thêm lớp phải đồng bộ mapping, data và classifier rồi train lại. |
-| Tham số package | `pyproject.toml` dùng giới hạn phiên bản tối thiểu, chưa khóa chính xác mọi dependency. Lưu phiên bản môi trường thực tế khi chạy. |
-| Seed | Có split seed, training seed và corruption seed, mỗi loại điều khiển một việc khác nhau. |
-| CPU/CUDA | Cùng seed không đảm bảo weights/kết quả giống hệt giữa backend; code chưa bật toàn bộ deterministic algorithms. |
-| `PYTHONHASHSEED` | Được gán lúc gọi hàm seed trong process; không nên coi đây là bảo đảm đã cố định hash randomization ngay từ lúc process khởi động. |
-| Gộp kết quả | Aggregator lưu hash nhưng chưa là bộ kiểm tra đầy đủ mọi run có cùng data/protocol; cần kiểm tra provenance trước khi kết luận. |
-| Data leakage | Hash bảo vệ nội dung file, không thay thế việc xác minh ảnh gần trùng, cùng địa điểm hoặc target đã dùng để chọn cải tiến. |
+| `configs/experiment.json` | Scripts do not yet read it as runtime configuration. Editing it does not automatically change training commands. Actual values come from CLI/defaults and are recorded in run metadata. |
+| Class labels | Defined in both `constants.py` and `prepare_manifests.py`; adding a class requires synchronizing mapping, data, and classifier, then retraining. |
+| Package parameters | `pyproject.toml` uses minimum version constraints without pinning every dependency exactly. Save actual environment versions when running. |
+| Seed | Split seed, training seed, and corruption seed each control different things. |
+| CPU/CUDA | The same seed does not guarantee identical weights/results across backends; the code has not enabled all deterministic algorithms. |
+| `PYTHONHASHSEED` | Assigned when the process calls the seeding function; do not treat this as a guarantee that hash randomization was fixed at process startup. |
+| Result aggregation | The aggregator saves hashes but does not fully verify that every run uses the same data/protocol; check provenance before drawing conclusions. |
+| Data leakage | Hashes protect file content; they do not replace checks for near-duplicates, the same location, or targets already used to select improvements. |
 
-**14. Những kết quả đã có và những gì chưa được chứng minh**
+**14. Existing results and what has not been demonstrated**
 
-Bảng sau được ghi lại từ CSV bạn đã gửi và giải thích CPU/CUDA trong thread
-trước; không phải phép đo lại ở phiên lập tài liệu này, cũng không phải kết quả robust.
+The following table was recorded from CSVs you sent and CPU/CUDA explanations
+in a previous thread; these are not new measurements during this documentation
+session, nor robustness results.
 
-| Model | Accuracy CUDA | Accuracy CPU |
+| Model | CUDA accuracy | CPU accuracy |
 |---|---:|---:|
-| SmallCNN | 68,33% | 68,33% |
-| ResNet18 scratch | 71,11% | 77,22% |
-| ResNet18 pretrained | 90,37% | 93,52% |
-| DeiT-Tiny pretrained | 93,33% | 94,07% |
+| SmallCNN | 68.33% | 68.33% |
+| ResNet18 scratch | 71.11% | 77.22% |
+| ResNet18 pretrained | 90.37% | 93.52% |
+| DeiT-Tiny pretrained | 93.33% | 94.07% |
 
-Chưa xác nhận CPU train lại hay chỉ test checkpoint CUDA; chưa xác minh đầy đủ
-cùng manifest/seed/config. Chưa thể quy chênh lệch cho thiết bị hoặc kết luận
-DeiT luôn tốt hơn ResNet. Chọn một môi trường nhất quán cho kết quả chính.
+Whether CPU runs retrained or only tested CUDA checkpoints is unconfirmed;
+shared manifests/seeds/configuration have not been fully verified. Differences
+cannot yet be attributed to the device, nor can DeiT be concluded to always
+outperform ResNet. Choose one consistent environment for the main results.
 
-| Hạng mục | Trạng thái tại thời điểm tài liệu |
+| Item | Status at the time of documentation |
 |---|---|
-| Code bốn model, train/test/infer | Đã triển khai; có kết quả baseline người dùng chạy trên Windows |
-| Manifest/checkpoint provenance và báo cáo | Đã bổ sung; run mới mới có đầy đủ metadata mới |
-| `weather_robust` và test 13 điều kiện | Đã triển khai code; chưa có weights/kết quả mới được xác nhận |
-| Kiểm thử | Phiên trước có 10 unit test pass và kiểm tra biến đổi trên một ảnh source thật |
-| PyTorch/Matplotlib end-to-end bản mới | Chưa chạy trên Mac; cần smoke test Windows |
-| Địa lý, mùa, thời tiết thật | Chưa đánh giá riêng do thiếu metadata |
-| Nhận diện bão, ngập hoặc thiệt hại | Chưa triển khai |
+| Four-model code, training/testing/inference | Implemented; user-run baseline results on Windows are available |
+| Manifest/checkpoint provenance and reports | Added; only new runs have all new metadata |
+| `weather_robust` and 13-condition testing | Code implemented; new weights/results have not been confirmed |
+| Tests | The previous session passed 10 unit tests and checked transformations on a real source image |
+| New end-to-end PyTorch/Matplotlib pipeline | Not run on the Mac; a Windows smoke test is needed |
+| Geography, seasons, real weather | Not evaluated separately due to missing metadata |
+| Storm, flood, or damage recognition | Not implemented |
 
-10 kiểm thử tập trung vào integrity, bảng báo cáo và tính tái lập của biến đổi;
-không chứng minh chất lượng model hoặc toàn bộ CUDA training chạy đúng.
+The 10 tests focus on integrity, report tables, and transformation
+reproducibility; they do not prove model quality or correct execution of all
+CUDA training.
 
-180 ảnh AID đã được xem để phân tích và định hướng cải tiến. Nếu dùng chúng cho
-quá trình phát triển, phải ghi rõ là kết quả thăm dò và có tập target mới chưa xem
-cho đánh giá cuối. Tạo bản blur/haze của ảnh cũ không khôi phục tính độc lập.
+The 180 AID images have been viewed for analysis and to guide improvements.
+If used during development, explicitly report results as exploratory and obtain
+a new unseen target set for final evaluation. Blurring/adding haze to old images
+does not restore independence.
 
-**15. Phần nào cần ưu tiên tự học?**
+**15. What should be prioritized for self-study?**
 
-| Ưu tiên | Chủ đề và file đọc | Sau khi đọc cần trả lời được |
+| Priority | Topic and files | Questions you should answer after reading |
 |---|---|---|
-| **Rất quan trọng — 1** | Methodology + manifest + split | Vì sao AID không được dùng chọn epoch? 5 fold khác full cross-validation thế nào? |
-| **Rất quan trọng — 2** | `data.py`, `constants.py` | Ảnh trở thành tensor thế nào? Sai class order/normalization gây hậu quả gì? |
-| **Rất quan trọng — 3** | `models.py` | SmallCNN làm gì? So cặp ResNet giúp kiểm soát yếu tố nào? |
-| **Rất quan trọng — 4** | `train.py`, `run_study.py` | Loss/backprop/optimizer khác nhau ra sao? `best.pt` development và final khác gì? |
-| **Rất quan trọng — 5** | `metrics.py`, `evaluate.py` | Vì sao accuracy cao chưa đủ? Lớp nào yếu? Confidence có đáng tin không? |
-| **Rất quan trọng — 6** | `robustness.py`, `evaluate_robustness.py` | Mô phỏng chứng minh được gì? Vì sao 13 lượt không phải 13 lần số mẫu độc lập? |
-| Quan trọng | `artifacts.py`, `reports.py` | Làm sao chứng minh kết quả thuộc checkpoint và dataset nào? |
-| Quan trọng | `infer.py`, `runtime.py` | Tái sử dụng model thế nào? Vì sao CPU/CUDA có thể khác nhau? |
-| Đọc khi vận hành | PowerShell scripts, `pyproject.toml`, hướng dẫn Windows | Cài môi trường, smoke test và lấy output ở đâu? |
+| **Very important — 1** | Methodology + manifest + split | Why must AID not select epochs? How do 5 folds differ from full cross-validation? |
+| **Very important — 2** | `data.py`, `constants.py` | How does an image become a tensor? What happens with incorrect class order/normalization? |
+| **Very important — 3** | `models.py` | What does SmallCNN do? Which factor does comparing the ResNet pair control? |
+| **Very important — 4** | `train.py`, `run_study.py` | How do loss/backprop/optimizer differ? How does development `best.pt` differ from final `best.pt`? |
+| **Very important — 5** | `metrics.py`, `evaluate.py` | Why is high accuracy insufficient? Which classes are weak? Is confidence trustworthy? |
+| **Very important — 6** | `robustness.py`, `evaluate_robustness.py` | What can simulations establish? Why do 13 passes not mean 13 times as many independent samples? |
+| Important | `artifacts.py`, `reports.py` | How can you establish which checkpoint and dataset produced a result? |
+| Important | `infer.py`, `runtime.py` | How is a model reused? Why can CPU/CUDA differ? |
+| Read when operating | PowerShell scripts, `pyproject.toml`, Windows guide | How do you install the environment, run a smoke test, and find outputs? |
 
-Lộ trình gợi ý gồm sáu buổi: (1) dữ liệu/domain/leakage; (2) preprocessing và
-SmallCNN; (3) ResNet/pretraining/DeiT; (4) training/validation/refit; (5) metrics và
-phân tích ảnh sai; (6) robustness/provenance và lập bảng kết quả báo cáo.
+Suggested six-session path: (1) data/domains/leakage; (2) preprocessing and
+SmallCNN; (3) ResNet/pretraining/DeiT; (4) training/validation/refit; (5) metrics
+and misclassified-image analysis; (6) robustness/provenance and report result tables.
 
-Tự kiểm tra bằng việc giải thích được một ảnh đi từ folder đến nhãn dự đoán,
-một checkpoint được chọn như thế nào, và một kết luận nghiên cứu dựa trên bảng nào.
-Nếu chưa giải thích được ba việc đó, nên ưu tiên chúng trước khi thêm kiến trúc mới.
+Check your understanding by explaining how an image goes from a directory to
+a predicted label, how a checkpoint is selected, and which table supports a
+research conclusion. If you cannot explain these three things, prioritize them
+before adding a new architecture.
 
-**16. Việc tiếp theo có giá trị nhất**
+**16. Most valuable next steps**
 
-1. Chạy smoke test bản mới trên Windows theo hướng dẫn robustness.
-2. Xác minh nguồn source, lưu lại tập ảnh/manifest thực tế và làm rõ hai đợt CPU/CUDA.
-3. Khóa protocol baseline/robust, seed/fold, môi trường và tập target chưa xem.
-4. Train lại, đánh giá cả ảnh sạch và suy giảm; lưu đủ output trước khi tổng hợp.
-5. Đọc F1 từng lớp và confusion matrix, không chỉ so một cột accuracy.
-6. Nếu giáo viên yêu cầu bão hoặc địa lý/thời tiết thật, thiết kế thêm dataset có
-   metadata và nhãn phù hợp thay vì gọi corruption mô phỏng là bằng chứng thực tế.
+1. Run a smoke test of the new version on Windows following the robustness guide.
+2. Add the revision/subset selection procedure for declared sources, save actual
+   image sets/manifests, and clarify the two CPU/CUDA experiment rounds.
+3. Fix baseline/robust protocols, seeds/folds, environment, and an unseen target set.
+4. Retrain and evaluate clean and degraded images; save complete outputs before aggregation.
+5. Read per-class F1 and confusion matrices, rather than comparing only one accuracy column.
+6. If the instructor requires real storms or geography/weather, design an
+   additional dataset with appropriate metadata and labels instead of calling
+   simulated corruptions real-world evidence.
 
-Mac hiện dùng để phát triển code/tài liệu; training ở Windows. Tiếp tục tuân thủ
-AGENTS.md của máy dùng chung: giới hạn worker, không stress/load test, không
-Docker/Colima trên Mac, và dọn process nền sau công việc.
+The Mac is currently used for code/documentation development; training runs on
+Windows. Continue following the shared machine's AGENTS.md: limit workers,
+no stress/load tests, no Docker/Colima on the Mac, and clean up background
+processes after work.

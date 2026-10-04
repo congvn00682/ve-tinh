@@ -1,27 +1,29 @@
-# Guideline chạy project trên máy khác
+# Guide to running the project on another machine
 
-Hướng dẫn lưu và xuất artifacts nghiên cứu mới:
+Instructions for saving and exporting new research artifacts:
 [RESEARCH_ARTIFACTS_GUIDELINE.md](RESEARCH_ARTIFACTS_GUIDELINE.md).
-Train/evaluate hiện yêu cầu output directory mới; không ghi đè kết quả cũ.
-`--skip-existing` chỉ bỏ qua run hoàn tất có hash hợp lệ. Với run dở dang,
-chuyển folder đó sang backup rồi chạy lại từ đầu; chưa hỗ trợ resume optimizer.
+Training/evaluation currently require a new output directory; do not overwrite
+previous results. `--skip-existing` only skips completed runs with valid hashes.
+For an incomplete run, move its directory to a backup location and start again
+from the beginning; optimizer resumption is not supported yet.
 
-Tài liệu này hướng dẫn chuyển source code, chuẩn bị môi trường, train các model,
-thực hiện cross-domain test trên AID, tổng hợp kết quả và inference ảnh mới.
+This document explains how to transfer the source code, prepare the environment,
+train the models, perform cross-domain testing on AID, aggregate results, and
+run inference on a new image.
 
-## 1. Pipeline sẽ chạy
+## 1. Pipeline to run
 
 ```text
 Source dataset
-  -> source train/validation để chọn số epoch
-  -> train lại model bằng toàn bộ source
-  -> lưu checkpoint
-  -> test duy nhất trên AID target
+  -> source training/validation to select the epoch count
+  -> retrain the model on the entire source
+  -> save checkpoint
+  -> test only on the AID target
   -> accuracy, balanced accuracy, precision, recall, macro-F1, ECE
-  -> confusion matrix và bảng so sánh model
+  -> confusion matrix and model comparison table
 ```
 
-Các model mặc định:
+Default models:
 
 ```text
 small_cnn
@@ -30,14 +32,14 @@ resnet18_pretrained
 deit_tiny_pretrained
 ```
 
-Project không dùng Docker và không yêu cầu cài đặt database hay dịch vụ nền.
+The project does not use Docker or require a database or background services.
 
-## 2. Chuyển project sang máy train
+## 2. Transfer the project to the training machine
 
-### Cách A: Git
+### Method A: Git
 
-Các thay đổi hiện tại phải được commit và push trước khi clone trên máy khác.
-Trên máy đang chứa project:
+Current changes must be committed and pushed before cloning on another machine.
+On the machine that currently holds the project:
 
 ```bash
 git status
@@ -46,19 +48,19 @@ git commit -m "Add cross-domain satellite classification pipeline"
 git push
 ```
 
-Lưu ý: commit này cũng ghi nhận việc xóa hai lớp không còn sử dụng. Kiểm tra kỹ
-`git status` trước khi commit.
+Note: this commit also records the removal of the two classes no longer used.
+Check `git status` carefully before committing.
 
-Trên máy train:
+On the training machine:
 
 ```bash
 git clone <URL_REPOSITORY>
 cd ve-tinh
 ```
 
-### Cách B: copy trực tiếp qua SSH
+### Method B: direct copy over SSH
 
-Chạy từ thư mục cha của project trên máy nguồn:
+Run from the project's parent directory on the source machine:
 
 ```bash
 rsync -a \
@@ -68,29 +70,30 @@ rsync -a \
   ve-tinh/ user@training-machine:/duong-dan/ve-tinh/
 ```
 
-Nếu dùng USB hoặc công cụ đồng bộ file, cần copy toàn bộ folder `ve-tinh`, bao
-gồm source images, `src`, `scripts`, `configs`, `research`, `pyproject.toml` và
-tài liệu này.
+If using USB or a file synchronization tool, copy the entire `ve-tinh` directory,
+including source images, `src`, `scripts`, `configs`, `research`, `pyproject.toml`,
+and this document.
 
-Sau khi chuyển, kiểm tra:
+After transferring, check:
 
 ```bash
 cd /duong-dan/ve-tinh
 ls
 ```
 
-Phải nhìn thấy tối thiểu:
+At minimum, these should be visible:
 
 ```text
-airport/
-baseball_diamond/
-beach/
-bridge/
-church/
-commercial_area/
-dense_residential/
-desert/
-forest/
+data/source_subset/
+  airport/
+  baseball_diamond/
+  beach/
+  bridge/
+  church/
+  commercial_area/
+  dense_residential/
+  desert/
+  forest/
 configs/
 research/
 scripts/
@@ -99,29 +102,29 @@ pyproject.toml
 README.md
 ```
 
-## 3. Yêu cầu máy train
+## 3. Training machine requirements
 
-Khuyến nghị:
+Recommendations:
 
-- Python 3.11 hoặc 3.12 được khuyến nghị.
-- NVIDIA GPU nếu muốn train nhanh.
-- Driver NVIDIA hoạt động nếu dùng CUDA.
-- Có Internet trong lần đầu chạy pretrained ResNet18 và DeiT để tải weights.
-- Dung lượng trống đủ cho virtual environment, pretrained weights và outputs.
+- Python 3.11 or 3.12 is recommended.
+- An NVIDIA GPU for faster training.
+- A working NVIDIA driver if using CUDA.
+- Internet access on the first run of pretrained ResNet18 and DeiT to download weights.
+- Enough free disk space for the virtual environment, pretrained weights, and outputs.
 
-CPU vẫn chạy được nhưng chậm. Apple Silicon có thể dùng backend MPS. PyTorch
-cung cấp bộ chọn lệnh cài đặt chính thức tại:
+CPU execution is supported but slow. Apple Silicon can use the MPS backend.
+PyTorch provides its official installation command selector at:
 
 <https://docs.pytorch.org/get-started/locally/>
 
-Metadata của project chấp nhận Python 3.10–3.13, nhưng khả năng có sẵn PyTorch
-wheel còn phụ thuộc hệ điều hành và phiên bản PyTorch. Python 3.11/3.12 là lựa
-chọn an toàn hơn. Không dùng Python 3.14 vì `pyproject.toml` hiện giới hạn
+Project metadata accepts Python 3.10–3.13, but PyTorch wheel availability also
+depends on the operating system and PyTorch version. Python 3.11/3.12 is a safer
+choice. Do not use Python 3.14 because `pyproject.toml` currently requires
 Python `<3.14`.
 
-## 4. Tạo Python virtual environment
+## 4. Create a Python virtual environment
 
-### Linux hoặc macOS
+### Linux or macOS
 
 ```bash
 cd /duong-dan/ve-tinh
@@ -130,7 +133,8 @@ source .venv/bin/activate
 python -m pip install --upgrade pip setuptools wheel
 ```
 
-Nếu máy chỉ có lệnh `python3`, thay `python3.12` bằng `python3` và kiểm tra:
+If the machine only has the `python3` command, replace `python3.12` with `python3`
+and check:
 
 ```bash
 python --version
@@ -145,79 +149,80 @@ py -3.12 -m venv .venv
 python -m pip install --upgrade pip setuptools wheel
 ```
 
-Nếu PowerShell chặn activation script, có thể dùng Command Prompt:
+If PowerShell blocks the activation script, use Command Prompt:
 
 ```bat
 .venv\Scripts\activate.bat
 ```
 
-Mỗi lần mở terminal mới, phải activate lại `.venv` trước khi chạy project.
+Each time you open a new terminal, reactivate `.venv` before running the project.
 
-## 5. Cài PyTorch đúng loại máy
+## 5. Install the appropriate PyTorch build
 
-### Máy NVIDIA CUDA
+### NVIDIA CUDA machine
 
-Kiểm tra GPU và driver:
+Check the GPU and driver:
 
 ```bash
 nvidia-smi
 ```
 
-Mở trang cài đặt PyTorch chính thức, chọn:
+Open the official PyTorch installation page and select:
 
 ```text
 PyTorch Build: Stable
-OS: hệ điều hành của máy
+OS: the machine's operating system
 Package: Pip
 Language: Python
-Compute Platform: CUDA phù hợp
+Compute Platform: appropriate CUDA option
 ```
 
-Sau đó chạy đúng lệnh mà trang chính thức sinh ra. Không nên chép một lệnh CUDA
-cố định từ tài liệu này vì phiên bản wheel được PyTorch cập nhật theo thời gian.
+Then run the exact command generated by the official page. Avoid copying a fixed
+CUDA command from this document because PyTorch updates wheel versions over time.
 
-### Máy chỉ dùng CPU
+### CPU-only machine
 
-Chọn `Compute Platform: CPU` trên trang cài đặt chính thức rồi chạy lệnh được
-cung cấp.
+Select `Compute Platform: CPU` on the official installation page and run the
+provided command.
 
 ### Apple Silicon
 
-Thông thường có thể cài:
+Usually, installation is possible with:
 
 ```bash
 python -m pip install torch torchvision
 ```
 
-Project tự nhận diện MPS bằng `torch.backends.mps.is_available()`. Không dùng
-`--amp` khi train bằng MPS.
+The project automatically detects MPS through `torch.backends.mps.is_available()`.
+Do not use `--amp` when training with MPS.
 
-## 6. Cài các dependency còn lại
+## 6. Install the remaining dependencies
 
-Sau khi đã cài đúng PyTorch/torchvision:
+After installing the correct PyTorch/torchvision builds:
 
 ```bash
 python -m pip install -e .
 ```
 
-Lệnh này cài package `satdomain` cùng các dependency như `timm`, `pandas`,
-`scikit-learn`, `Pillow` và `matplotlib`.
+This installs the `satdomain` package and dependencies such as `timm`, `pandas`,
+`scikit-learn`, `Pillow`, and `matplotlib`.
 
-Kiểm tra installation:
+Check the installation:
 
 ```bash
 python -c "import torch, torchvision, timm, satdomain; print('torch=', torch.__version__); print('cuda=', torch.cuda.is_available()); print('mps=', torch.backends.mps.is_available())"
 ```
 
-Kết quả mong đợi:
+Expected results:
 
 - NVIDIA: `cuda=True`.
 - Apple Silicon: `mps=True`.
-- CPU: cả CUDA và MPS có thể là `False`; project vẫn chạy bằng CPU.
+- CPU: both CUDA and MPS may be `False`; the project still runs on CPU.
 
-## 7. Chuẩn bị AID target dataset
+## 7. Prepare the AID target dataset
 
-AID có thể nằm ngoài repository. Cấu trúc cần có đủ chín lớp:
+AID may be stored outside the repository. Its directory structure must contain
+all nine classes:
 
 ```text
 /data/aid_target/
@@ -232,39 +237,38 @@ AID có thể nằm ngoài repository. Cấu trúc cần có đủ chín lớp:
   Forest/
 ```
 
-Số ảnh target không bắt buộc là 100 ảnh/lớp và các lớp không bắt buộc có số ảnh
-bằng nhau. Tuy nhiên:
+The target does not have to contain 100 images per class, and class sizes need
+not be equal. However:
 
-- Mỗi lớp phải có ít nhất một ảnh.
-- Càng ít ảnh thì accuracy và per-class metrics càng thiếu ổn định.
-- Nếu số ảnh giữa các lớp khác nhau, ưu tiên macro-F1 và balanced accuracy.
-- 5 ảnh/lớp chỉ phù hợp cho kiểm tra nhanh, không phù hợp làm kết quả nghiên cứu
-  cuối cùng.
+- Every class must have at least one image.
+- Fewer images make accuracy and per-class metrics less stable.
+- If class sizes differ, prioritize macro-F1 and balanced accuracy.
+- 5 images per class is only suitable for a quick check, not for final research results.
 
-Các extension được hỗ trợ:
+Supported extensions:
 
 ```text
 .jpg .jpeg .png .tif .tiff
 ```
 
-## 8. Tạo manifest và audit dữ liệu
+## 8. Generate manifests and audit the data
 
-Từ thư mục repository:
+From the repository directory:
 
 ```bash
 python scripts/prepare_manifests.py \
-  --source-root . \
+  --source-root data/source_subset \
   --aid-root /data/aid_target \
   --output-dir data/manifests
 ```
 
-Windows PowerShell có thể chạy một dòng:
+Windows PowerShell can run this on one line:
 
 ```powershell
-python scripts/prepare_manifests.py --source-root . --aid-root "D:\data\aid_target" --output-dir data/manifests
+python scripts/prepare_manifests.py --source-root data/source_subset --aid-root "D:\data\aid_target" --output-dir data/manifests
 ```
 
-Kết quả:
+Outputs:
 
 ```text
 data/manifests/source.csv
@@ -272,33 +276,33 @@ data/manifests/aid_test.csv
 data/manifests/summary.json
 ```
 
-Script kiểm tra:
+The script checks:
 
-- Đủ chín class folder.
-- Mỗi class không bị rỗng.
-- Source có đủ ảnh để tạo năm validation folds.
-- Không có ảnh trùng tuyệt đối trong cùng domain.
-- Không có ảnh trùng tuyệt đối giữa source và target.
-- Ghi SHA-256 cho từng ảnh.
+- All nine class directories are present.
+- No class is empty.
+- The source contains enough images to create five validation folds.
+- There are no exact duplicate images within a domain.
+- There are no exact duplicate images between source and target.
+- SHA-256 is recorded for every image.
 
-Mở `data/manifests/summary.json` và kiểm tra số ảnh trước khi train.
+Open `data/manifests/summary.json` and check the image counts before training.
 
-Nếu chủ động yêu cầu target phải có đúng 5 ảnh/lớp, có thể thêm:
+If you explicitly require exactly 5 target images per class, add:
 
 ```bash
 --expected-target-per-class 5
 ```
 
-Không thêm tham số này nếu target có số lượng thay đổi.
+Do not add this option if target counts vary.
 
-## 9. Chạy smoke test trước
+## 9. Run a smoke test first
 
-Không chạy toàn bộ study ngay. Đầu tiên kiểm tra SmallCNN với hai epoch:
+Do not run the entire study immediately. First check SmallCNN with two epochs:
 
 ```bash
 python -m satdomain.train \
   --manifest data/manifests/source.csv \
-  --data-root . \
+  --data-root data/source_subset \
   --arch small_cnn \
   --mode development \
   --validation-fold 0 \
@@ -308,25 +312,25 @@ python -m satdomain.train \
   --output-dir outputs/smoke
 ```
 
-Trên NVIDIA có thể thêm:
+On NVIDIA, you can add:
 
 ```bash
 --device cuda --amp
 ```
 
-Trên Apple Silicon có thể thêm:
+On Apple Silicon, you can add:
 
 ```bash
 --device mps
 ```
 
-Trên CPU:
+On CPU:
 
 ```bash
 --device cpu
 ```
 
-Smoke test thành công khi xuất hiện:
+The smoke test succeeds when these files appear:
 
 ```text
 outputs/smoke/best.pt
@@ -335,16 +339,16 @@ outputs/smoke/summary.json
 outputs/smoke/training_curves.png
 ```
 
-Smoke test không phải kết quả nghiên cứu.
+The smoke test is not a research result.
 
-## 10. Chạy toàn bộ cross-domain study
+## 10. Run the entire cross-domain study
 
 ### NVIDIA GPU
 
 ```bash
 python scripts/run_study.py \
   --source-manifest data/manifests/source.csv \
-  --source-root . \
+  --source-root data/source_subset \
   --target-manifest data/manifests/aid_test.csv \
   --target-root /data/aid_target \
   --output-root outputs \
@@ -354,14 +358,14 @@ python scripts/run_study.py \
   --amp
 ```
 
-### CPU hoặc Apple Silicon
+### CPU or Apple Silicon
 
-Bỏ `--amp` và chọn `--device cpu`, `--device mps`, hoặc để `--device auto`:
+Remove `--amp` and select `--device cpu`, `--device mps`, or leave `--device auto`:
 
 ```bash
 python scripts/run_study.py \
   --source-manifest data/manifests/source.csv \
-  --source-root . \
+  --source-root data/source_subset \
   --target-manifest data/manifests/aid_test.csv \
   --target-root /data/aid_target \
   --output-root outputs \
@@ -370,52 +374,53 @@ python scripts/run_study.py \
   --device auto
 ```
 
-Windows PowerShell có thể đặt toàn bộ tham số trên một dòng.
+Windows PowerShell can place all arguments on a single line.
 
-Quy trình chạy theo đúng thứ tự:
+The procedure runs in this order:
 
-1. Development trên source train/validation.
-2. Chọn số epoch chỉ từ source validation.
-3. Train lại bằng toàn bộ source.
-4. Sau khi tất cả model hoàn tất, mới test trên AID.
+1. Development on source training/validation data.
+2. Select the epoch count using only source validation.
+3. Retrain on the entire source.
+4. Test on AID only after every model has finished.
 
-Mặc định có bốn model và ba seed. Lần đầu chạy pretrained model cần tải weights.
+There are four models and three seeds by default. The first run of a pretrained
+model needs to download weights.
 
-Nếu phiên trước bị ngắt, chạy lại cùng lệnh và thêm:
+If a previous session was interrupted, rerun the same command and add:
 
 ```bash
 --skip-existing
 ```
 
-Trên Linux/macOS, nên dùng một phiên terminal bền vững như tmux:
+On Linux/macOS, use a persistent terminal session such as tmux:
 
 ```bash
 tmux new -s satellite-cross-domain
 ```
 
-Sau đó chạy study trong tmux. Dùng `Ctrl+B`, rồi `D` để detach và:
+Then run the study inside tmux. Use `Ctrl+B`, followed by `D`, to detach, and:
 
 ```bash
 tmux attach -t satellite-cross-domain
 ```
 
-để quay lại.
+to return.
 
-## 11. Vị trí checkpoint và kết quả test
+## 11. Checkpoint and test result locations
 
-Checkpoint cuối:
+Final checkpoint:
 
 ```text
 outputs/final/<model>/seed_<seed>/best.pt
 ```
 
-Ví dụ:
+Example:
 
 ```text
 outputs/final/resnet18_pretrained/seed_13/best.pt
 ```
 
-Kết quả AID của từng model/seed:
+AID results for each model/seed:
 
 ```text
 outputs/final/<model>/seed_<seed>/aid_evaluation/
@@ -424,17 +429,17 @@ outputs/final/<model>/seed_<seed>/aid_evaluation/
   confusion_matrix.png
 ```
 
-Terminal cũng in:
+The terminal also prints:
 
 ```text
 accuracy=... balanced_accuracy=... macro_f1=...
 ```
 
-Giá trị `0.80` tương ứng `80%`.
+The value `0.80` corresponds to `80%`.
 
-## 12. Tổng hợp và so sánh model
+## 12. Aggregate and compare models
 
-Sau khi tất cả model test xong:
+After every model has finished testing:
 
 ```bash
 python scripts/aggregate_results.py \
@@ -442,29 +447,29 @@ python scripts/aggregate_results.py \
   --models small_cnn resnet18_scratch resnet18_pretrained deit_tiny_pretrained
 ```
 
-Kết quả:
+Outputs:
 
 ```text
 outputs/cross_domain_runs.csv
 outputs/cross_domain_models.csv
 ```
 
-Ý nghĩa:
+Meaning:
 
-- `cross_domain_runs.csv`: kết quả từng model và từng seed.
-- `cross_domain_models.csv`: mean và standard deviation qua các seed.
-- Macro-F1 là chỉ số chính khi số ảnh mỗi lớp target khác nhau.
-- Balanced accuracy cho mỗi lớp trọng số ngang nhau.
-- Accuracy cho biết tỷ lệ đúng trên toàn bộ ảnh.
-- ECE càng thấp thì confidence càng gần với độ chính xác thực tế hơn.
+- `cross_domain_runs.csv`: results for each model and seed.
+- `cross_domain_models.csv`: mean and standard deviation across seeds.
+- Macro-F1 is the primary metric when target class sizes differ.
+- Balanced accuracy gives each class equal weight.
+- Accuracy is the proportion of correct predictions across all images.
+- Lower ECE indicates that confidence is closer to actual accuracy.
 
-So sánh có kiểm soát ảnh hưởng của pretraining bằng:
+Control for the effect of pretraining by comparing:
 
 ```text
 resnet18_scratch vs resnet18_pretrained
 ```
 
-## 13. Test thủ công một checkpoint
+## 13. Manually test one checkpoint
 
 ```bash
 python -m satdomain.evaluate \
@@ -477,9 +482,9 @@ python -m satdomain.evaluate \
   --device auto
 ```
 
-Kết quả nằm trong `outputs/manual_test`.
+Results are saved in `outputs/manual_test`.
 
-## 14. Inference một ảnh mới
+## 14. Inference on a new image
 
 ```bash
 python -m satdomain.infer \
@@ -489,14 +494,15 @@ python -m satdomain.infer \
   --device auto
 ```
 
-Output là JSON gồm ba class có confidence cao nhất. Model là closed-set
-classifier: ảnh ngoài chín lớp vẫn bị ép vào một trong chín class đã biết.
+The output is JSON containing the three classes with the highest confidence.
+The model is a closed-set classifier: images outside the nine classes are still
+forced into one of the nine known classes.
 
-## 15. Lỗi thường gặp
+## 15. Common errors
 
 ### `ModuleNotFoundError: No module named 'satdomain'`
 
-Activate đúng virtual environment và cài lại project:
+Activate the correct virtual environment and reinstall the project:
 
 ```bash
 source .venv/bin/activate
@@ -512,82 +518,86 @@ python -m pip install -e .
 
 ### `ModuleNotFoundError: No module named 'torch'`
 
-Cài PyTorch bằng lệnh từ bộ chọn chính thức, trong đúng virtual environment.
+Install PyTorch using the command from the official selector inside the correct
+virtual environment.
 
-### `torch.cuda.is_available()` trả về `False`
+### `torch.cuda.is_available()` returns `False`
 
-Kiểm tra:
+Check:
 
 ```bash
 nvidia-smi
 python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.version.cuda)"
 ```
 
-Nếu driver hoạt động nhưng CUDA vẫn `False`, thường là đã cài CPU-only PyTorch.
-Cài lại wheel CUDA theo bộ chọn chính thức.
+If the driver works but CUDA remains `False`, a CPU-only PyTorch build is usually
+installed. Reinstall a CUDA wheel using the official selector.
 
 ### CUDA out of memory
 
-Giảm batch size:
+Reduce the batch size:
 
 ```bash
 --batch-size 16
 ```
 
-Nếu vẫn lỗi, thử `8`. Giữ cùng batch size giữa các model khi có thể và ghi lại
-mọi thay đổi trong báo cáo.
+If the error persists, try `8`. Keep the same batch size across models when
+possible and record every change in the report.
 
-### DataLoader lỗi trên Windows
+### DataLoader error on Windows
 
-Thử:
+Try:
 
 ```bash
 --workers 0
 ```
 
-Sau khi xác nhận chạy được, có thể tăng lại nhưng không vượt quá tài nguyên máy.
+After confirming that it works, you can increase it again without exceeding the
+machine's resources.
 
-### Không tìm thấy class folder
+### Class directory not found
 
-Kiểm tra tên folder AID theo phần 7. Không đặt ảnh trực tiếp ở root AID.
+Check the AID directory names in section 7. Do not place images directly in the
+AID root directory.
 
-### Pretrained model không tải được weights
+### Pretrained model cannot download weights
 
-ResNet18 pretrained và DeiT-Tiny pretrained cần Internet trong lần tải đầu.
-Kiểm tra kết nối hoặc chuẩn bị cache weights trước khi chạy trên máy offline.
+Pretrained ResNet18 and pretrained DeiT-Tiny need Internet access for the first
+weight download. Check the connection or prepare the weight cache before running
+on an offline machine.
 
-### Study bị dừng giữa chừng
+### Study stops partway through
 
-Chạy lại đúng command cũ với:
+Rerun the exact previous command with:
 
 ```bash
 --skip-existing
 ```
 
-Không xóa các checkpoint đã hoàn tất.
+Do not delete completed checkpoints.
 
-## 16. Quy tắc để kết quả nghiên cứu hợp lệ
+## 16. Rules for valid research results
 
-1. Không dùng AID để train hoặc early stopping.
-2. Dùng cùng một `aid_test.csv` cho tất cả model.
-3. Không đổi target images giữa các model.
-4. Không chọn augmentation/hyperparameter dựa trên AID test rồi báo cáo lại AID
-   như một test set hoàn toàn độc lập.
-5. Lưu `summary.json`, manifest, config, checkpoint và Git commit tương ứng.
-6. Không so sánh hai model nếu chúng được đánh giá trên hai target set khác nhau.
-7. Nếu thay class hoặc target dataset, tạo experiment/output folder mới và chạy
-   lại tất cả model.
+1. Do not use AID for training or early stopping.
+2. Use the same `aid_test.csv` for every model.
+3. Do not change target images between models.
+4. Do not select augmentation/hyperparameters based on AID test results and then
+   report AID as a completely independent test set.
+5. Save `summary.json`, manifests, configuration, checkpoints, and the corresponding Git commit.
+6. Do not compare two models evaluated on different target sets.
+7. If classes or the target dataset change, create a new experiment/output directory
+   and rerun every model.
 
-## 17. Checklist trước khi chạy full study
+## 17. Checklist before running the full study
 
-- [ ] Project đã được copy đầy đủ hoặc clone từ commit mới nhất.
-- [ ] Đang dùng Python 3.11 hoặc 3.12 nếu có thể.
-- [ ] Virtual environment đang active.
-- [ ] PyTorch nhận đúng CUDA/MPS/CPU.
-- [ ] `python -m pip install -e .` đã thành công.
-- [ ] AID có đủ chín class folder.
-- [ ] `summary.json` có số ảnh đúng dự kiến.
-- [ ] Smoke test hai epoch đã tạo `best.pt`.
-- [ ] Đã chọn `batch-size` không gây out-of-memory.
-- [ ] Mọi model dùng cùng target manifest.
-- [ ] Có thư mục riêng để giữ outputs và kết quả báo cáo.
+- [ ] The project has been fully copied or cloned from the latest commit.
+- [ ] Python 3.11 or 3.12 is being used if possible.
+- [ ] The virtual environment is active.
+- [ ] PyTorch detects the correct CUDA/MPS/CPU backend.
+- [ ] `python -m pip install -e .` succeeded.
+- [ ] AID contains all nine class directories.
+- [ ] `summary.json` shows the expected image counts.
+- [ ] The two-epoch smoke test created `best.pt`.
+- [ ] The chosen `batch-size` does not cause out-of-memory errors.
+- [ ] Every model uses the same target manifest.
+- [ ] A separate directory is available for outputs and report results.
